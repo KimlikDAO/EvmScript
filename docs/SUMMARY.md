@@ -6,5 +6,5 @@
 
 * [Typed stack algebra](core-concepts/typed-stack-algebra.md)
 * [Expressions and Statements](core-concepts/expressions-and-statements.md)
-* [Fuctions](core-concepts/fuctions.md)
-* [The Solver](core-concepts/the-solver.md)
+* [Functions](core-concepts/functions.md)
+* [Abstract stack problem](core-concepts/abstract-stack-problem.md)
