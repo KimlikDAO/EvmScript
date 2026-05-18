@@ -1,5 +1,5 @@
 import { keccak256Uint8 } from "@kimlikdao/lib/crypto/sha3";
-import { Address } from "../address.d";
+import { Address } from "../types";
 
 const CreatePrefix = keccak256Uint8(new TextEncoder().encode("zksyncCreate"));
 
@@ -13,7 +13,7 @@ const getCreateAddress = (deployer: Address, nonce: number): Address => {
   for (let i = 1; i <= 20; ++i)
     out[i + 31 + 12] = parseInt(deployer.substring(2 * i, 2 * i + 2), 16);
   out[95] = nonce;
-  return "0x" + keccak256Uint8(out).subarray(12, 32).toHex();
+  return `0x${keccak256Uint8(out).subarray(12, 32).toHex()}`;
 }
 
 export { getCreateAddress };

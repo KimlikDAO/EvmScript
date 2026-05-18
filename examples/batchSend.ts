@@ -1,10 +1,9 @@
-import { Address } from "../core/address.d";
 import { assemble, Program } from "../core/assembler";
+import { Body } from "../core/body";
 import { call } from "../core/builtins";
 import { get } from "../core/expression";
-import type { Body } from "../core/body";
 import { set, unrollFor } from "../core/statement";
-import { Weis } from "../core/types";
+import { Address, Weis } from "../core/types";
 
 type Recipient = { address: Address; amount: bigint };
 type RecipientGroup = { amount: bigint; recipients: Address[] };
@@ -41,7 +40,7 @@ const groupByAmount = (recipients: readonly Recipient[]): RecipientGroup[] => {
   const groups: RecipientGroup[] = [];
   for (const { address, amount } of sorted) {
     const last = groups[groups.length - 1];
-    if (last?.amount == amount)
+    if (last && last.amount == amount)
       last.recipients.push(address);
     else
       groups.push({ amount, recipients: [address] });
@@ -53,5 +52,5 @@ export {
   batchSend,
   batchSendFixedAmount,
   fixedAmountBody,
-  Recipient,
+  Recipient
 };

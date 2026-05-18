@@ -1,4 +1,9 @@
-import { Address } from "./address.d";
+/**
+ * Represents an Ethereum address as a length-42 string beginning with "0x".
+ * The address may use mixed-case checksum encoding as defined by EIP-55, or be
+ * all lowercase or uppercase.
+ */
+type Address = `0x${string}`;
 
 type Bytes = Uint8Array<ArrayBuffer>;
 
@@ -119,6 +124,7 @@ type Literal =
 
 export {
   Addr, AddrLit,
+  Address,
   Bool, BoolLit,
   Bytes,
   Data, DataLit,
