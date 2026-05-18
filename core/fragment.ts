@@ -1,4 +1,4 @@
-import { parseEther } from "../denominations";
+import { parseEther } from "@kimlikdao/lib/ethereum/denominations";
 import { Op, OpData, PUSHN } from "./opcodes";
 import {
   EnsureNames,

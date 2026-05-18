@@ -1,7 +1,7 @@
 import { createEVM } from "@ethereumjs/evm";
 import { createZeroAddress } from "@ethereumjs/util";
 import { expect, test } from "bun:test";
-import { keccak256Uint8 } from "../../../crypto/sha3";
+import { keccak256Uint8 } from "@kimlikdao/lib/crypto/sha3";
 import { assemble } from "../assembler";
 import { calldataLoad, mstore, ret } from "../builtins";
 import { array, calldata as calldataLayout } from "../array";
