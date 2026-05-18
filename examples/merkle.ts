@@ -8,11 +8,11 @@ import {
   shr,
   sload,
   sub,
-} from "../builtins";
-import { inline } from "../function";
-import { array } from "../array";
-import { set, unrollFor } from "../statement";
-import { Data, Uint } from "../types";
+} from "../core/builtins";
+import { inline } from "../core/function";
+import { array } from "../core/array";
+import { set, unrollFor } from "../core/statement";
+import { Data, Uint } from "../core/types";
 
 const hashPairAtOffset = inline(
   { sibling: Data, offset: Uint, hash: Data },

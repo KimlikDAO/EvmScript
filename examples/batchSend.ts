@@ -1,10 +1,10 @@
-import { Address } from "../../address.d";
-import { assemble, Program } from "../assembler";
-import { call } from "../builtins";
-import { get } from "../expression";
-import type { Body } from "../body";
-import { set, unrollFor } from "../statement";
-import { Weis } from "../types";
+import { Address } from "../core/address.d";
+import { assemble, Program } from "../core/assembler";
+import { call } from "../core/builtins";
+import { get } from "../core/expression";
+import type { Body } from "../core/body";
+import { set, unrollFor } from "../core/statement";
+import { Weis } from "../core/types";
 
 type Recipient = { address: Address; amount: bigint };
 type RecipientGroup = { amount: bigint; recipients: Address[] };

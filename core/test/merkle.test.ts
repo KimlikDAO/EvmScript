@@ -6,7 +6,7 @@ import { assemble } from "../assembler";
 import { calldataLoad, mstore, ret } from "../builtins";
 import { array, calldata as calldataLayout } from "../array";
 import { Op } from "../opcodes";
-import { verifyMerkle } from "../recipes/merkle";
+import { verifyMerkle } from "../../examples/merkle";
 import { Data, Uint } from "../types";
 
 const word = (lastByte: number): Uint8Array<ArrayBuffer> => {

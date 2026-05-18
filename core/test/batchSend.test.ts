@@ -3,7 +3,7 @@ import {
   batchSend,
   batchSendFixedAmount,
   fixedAmountBody,
-} from "../recipes/batchSend";
+} from "../../examples/batchSend";
 import { assemble } from "../assembler";
 import { Op } from "../opcodes";
 

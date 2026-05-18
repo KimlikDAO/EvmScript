@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { assemble } from "../assembler";
-import { createUpgradableProxy } from "../recipes/proxies";
+import { createUpgradableProxy } from "../../examples/proxies";
 import { Fragment, LabelPos, LabelRef } from "../fragment";
 import { Op } from "../opcodes";
 import { label, set } from "../statement";

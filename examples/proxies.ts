@@ -1,5 +1,5 @@
-import { Address } from "../../address.d";
-import { assemble, Program } from "../assembler";
+import { Address } from "../core/address.d";
+import { assemble, Program } from "../core/assembler";
 import {
   calldataCopy,
   calldataSize,
@@ -12,10 +12,10 @@ import {
   returnOrRevert,
   sload,
   sstore,
-} from "../builtins";
-import { get } from "../expression";
-import { blob, set } from "../statement";
-import { Addr, Bytes } from "../types";
+} from "../core/builtins";
+import { get } from "../core/expression";
+import { blob, set } from "../core/statement";
+import { Addr, Bytes } from "../core/types";
 
 const upgradableProxy = (slot: Bytes): Program =>
   assemble(

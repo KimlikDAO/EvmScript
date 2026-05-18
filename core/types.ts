@@ -1,4 +1,4 @@
-import { Address } from "../address.d";
+import { Address } from "./address.d";
 
 type Bytes = Uint8Array<ArrayBuffer>;
 
