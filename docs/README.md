@@ -45,7 +45,7 @@ from the TypeScript ecosystem.
       <td><strong>Extreme gas efficiency</strong></td>
       <td>
         For each statement, EvmScript searches for the minimum-cost stack
-        choreography in the abstract stack model
+        choreography using a smart, guided combinatorial searcher
       </td>
       <td>
         <a href="core-concepts/abstract-stack-problem.md">
