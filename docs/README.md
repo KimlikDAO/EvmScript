@@ -87,17 +87,17 @@ compilation.
 ## Who is this for?
 
 EvmScript is for teams whose costs come from repeatedly executing expensive EVM
-programs. It is most useful when shaving bytes and gas from the on-chain side of
+programs. It is most useful when shaving gas and bytes from the on-chain side of
 an operation compounds over many transactions.
 
 Good fits include:
 
-* searchers and solvers submitting execution-heavy settlement transactions;
-* bridge operators, validator committees, and threshold-signature signer sets;
-* DeFi operators running liquidations, auctions, rebalances, or batch
-  settlements;
 * protocol teams deploying small, specialized verifiers, proxies, and payout
   programs;
+* DeFi operators running liquidations, auctions, rebalances, or batch
+  settlements;
+* bridge operators, validator committees, and threshold-signature signer sets;
+* searchers and solvers submitting execution-heavy settlement transactions;
 * any operator who would otherwise hand-write EVM assembly to win gas.
 
 EvmScript is for EVM-side hot paths. It helps when bytecode size, stack

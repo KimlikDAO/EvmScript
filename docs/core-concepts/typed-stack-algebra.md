@@ -6,7 +6,7 @@ typed stack effects. These pieces are called `Fragment`s.
 A `Fragment` has two parts:
 
 * `signature`: a typed description of the fragment's stack effect.
-* `code`: the EVM bytecode atoms emitted by the fragment.
+* `code`: the EVM bytecodes executed by the fragment.
 
 The typed stack algebra is the layer that lets EvmScript stitch fragments
 together safely before bytecode is assembled. If two fragments do not agree on
@@ -47,7 +47,52 @@ add further stack requirements to the composed signature.
 EvmScript types are compile-time classifications for EVM words. They do not add
 runtime tags to bytecode, but they make invalid stack composition fail early.
 
-<table><thead><tr><th width="100">Name</th><th>Description</th></tr></thead><tbody><tr><td><code>Word</code></td><td>The top type. A value whose more specific interpretation is not known.</td></tr><tr><td><code>Uint</code></td><td>Unbranded integer word.</td></tr><tr><td><code>Weis</code></td><td>A <code>Uint</code> subtype used for wei amounts.</td></tr><tr><td><code>Locn</code></td><td>A <code>Uint</code> subtype used for calldata and memory offsets.</td></tr><tr><td><code>Size</code></td><td>A <code>Uint</code> subtype used for calldata and memory sizes.</td></tr><tr><td><code>Addr</code></td><td>An Ethereum address.</td></tr><tr><td><code>Data</code></td><td>A non-numeric EVM word, commonly used for storage, memory, and hashes.</td></tr><tr><td><code>Bool</code></td><td>A boolean word, represented in the EVM as 0 or 1.</td></tr></tbody></table>
+<table>
+  <thead>
+    <tr>
+      <th width="100">Name</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>Word</code></td>
+      <td>
+        The top type. A value whose more specific interpretation is not known.
+      </td>
+    </tr>
+    <tr>
+      <td><code>Uint</code></td>
+      <td>Unbranded integer word.</td>
+    </tr>
+    <tr>
+      <td><code>Weis</code></td>
+      <td>A <code>Uint</code> subtype used for wei amounts.</td>
+    </tr>
+    <tr>
+      <td><code>Locn</code></td>
+      <td>A <code>Uint</code> subtype used for calldata and memory offsets.</td>
+    </tr>
+    <tr>
+      <td><code>Size</code></td>
+      <td>A <code>Uint</code> subtype used for calldata and memory sizes.</td>
+    </tr>
+    <tr>
+      <td><code>Addr</code></td>
+      <td>An Ethereum address.</td>
+    </tr>
+    <tr>
+      <td><code>Data</code></td>
+      <td>
+        A non-numeric EVM word, commonly used for storage, memory, and hashes.
+      </td>
+    </tr>
+    <tr>
+      <td><code>Bool</code></td>
+      <td>A boolean word, represented in the EVM as 0 or 1.</td>
+    </tr>
+  </tbody>
+</table>
 
 The type relation is intentionally simple: a subtype can be used where one of
 its supertypes is expected. For example, `Weis` is assignable to `Uint`, and
@@ -58,17 +103,38 @@ its supertypes is expected. For example, `Weis` is assignable to `Uint`, and
 Fragments compose generically. Composition computes the overall stack effect of
 a sequence of fragments without needing to know what the bytecode means.
 
-For example:
+For example, suppose we have three fragments:
 
 ```typescript
-pushAmount: () -> 0|amount: Weis
-pushTarget: () -> 0|target: Addr
-call:       (Size, Locn, Size, Locn, Weis, Addr, Uint) -> 7|Bool
+pushX: () -> 0|Uint
+pushY: () -> 0|Uint
+add:   (Uint, Uint) -> 2|Uint
 ```
 
-When fragments are composed, later expectations may be satisfied by values that
-earlier fragments produced. If a later fragment expects a type that is
-incompatible with the produced type, composition throws a type error.
+Composing them gives a closed fragment:
+
+```typescript
+compose(pushX, pushY, add): () -> 0|Uint
+```
+
+The two `Uint`s produced by `pushX` and `pushY` satisfy the expectation of
+`add`, and `add` consumes them to produce the final `Uint`.
+
+The same logic works even when some inputs come from the stack before the
+composed fragment starts:
+
+```typescript
+pushY: () -> 0|Uint
+add:   (Uint, Uint) -> 2|Uint
+
+compose(pushY, add): (Uint) -> 1|Uint
+```
+
+Here the composed fragment still expects one `Uint` from its caller. The other
+`Uint` is produced internally by `pushY`.
+
+If a later fragment expects a type that is incompatible with the produced type,
+composition throws a type error.
 
 Composition is associative: grouping does not change the final stack effect.
 
