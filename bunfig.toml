@@ -1,0 +1,4 @@
+preload = ["./transpiler/evm/bunPlugin.ts"]
+
+[test]
+preload = ["./transpiler/evm/bunPlugin.ts"]

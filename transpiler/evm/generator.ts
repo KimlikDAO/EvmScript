@@ -1,8 +1,12 @@
 import {
+  AssignmentExpression,
   ArrowFunctionExpression,
+  BinaryExpression,
   BlockStatement,
   CallExpression,
   ExpressionStatement,
+  ForInStatement,
+  ForOfStatement,
   FunctionDeclaration,
   FunctionExpression,
   Identifier,
@@ -10,10 +14,28 @@ import {
   MemberExpression,
   Node,
   ReturnStatement,
+  VariableDeclaration,
 } from "acorn";
 import { Generator } from "../ast/walk";
 
+type EvmFunction =
+  | FunctionDeclaration
+  | FunctionExpression
+  | ArrowFunctionExpression;
+
 class EvmGenerator extends Generator {
+  private readonly arrays = new Set<string>();
+  private readonly locals = new Set<string>();
+  private readonly params = new Set<string>();
+
+  override rec(node: Node | null | undefined, ...rest: unknown[]) {
+    if (!node)
+      return;
+    if (typeof (this as any)[node.type] != "function")
+      this.unsupported(node, `Unsupported EVM node ${node.type}`);
+    (this as any)[node.type](node, ...rest);
+  }
+
   FunctionDeclaration(node: FunctionDeclaration) {
     this.inlineFunction(node);
   }
@@ -26,19 +48,45 @@ class EvmGenerator extends Generator {
     this.inlineFunction(node);
   }
 
-  inlineFunction(
-    node: FunctionDeclaration | FunctionExpression | ArrowFunctionExpression
-  ) {
+  inlineFunction(node: EvmFunction) {
+    const oldArrays = new Set(this.arrays);
+    const oldLocals = new Set(this.locals);
+    const oldParams = new Set(this.params);
+    const arrayParams = this.arrayParamNames(node.params);
+    for (const name of arrayParams)
+      this.arrays.add(name);
+    for (const name of this.paramNames(node.params))
+      this.params.add(name);
+
     this.put("inline(");
+    this.inc();
+    this.ret();
     this.schemaObject(node.params);
-    this.put(", ");
+    this.put(",");
+    this.ret();
     this.paramBinding(node.params);
     this.put(" => ");
     this.rec(node.body);
+    this.dec();
+    this.ret();
     this.put(")");
+
+    this.arrays.clear();
+    for (const name of oldArrays)
+      this.arrays.add(name);
+    this.locals.clear();
+    for (const name of oldLocals)
+      this.locals.add(name);
+    this.params.clear();
+    for (const name of oldParams)
+      this.params.add(name);
   }
 
   schemaObject(params: readonly Node[]) {
+    if (params.length == 0) {
+      this.put("{}");
+      return;
+    }
     this.put("{ ");
     for (let i = 0; i < params.length; ++i) {
       if (i) this.put(", ");
@@ -50,11 +98,36 @@ class EvmGenerator extends Generator {
   schemaEntry(param: Node) {
     if (param.type != "Identifier")
       this.unsupported(param, "EVM function parameters must be identifiers");
+    if (!param.typeAnnotation)
+      this.unsupported(param, "EVM function parameters need type annotations");
     this.put(param.name + ": ");
     this.rec(param.typeAnnotation);
   }
 
+  arrayParamNames(params: readonly Node[]): string[] {
+    const names: string[] = [];
+    for (const param of params)
+      if (
+        param.type == "Identifier" &&
+        param.typeAnnotation?.typeAnnotation.type == "TSIndexedAccessType"
+      )
+        names.push(param.name);
+    return names;
+  }
+
+  paramNames(params: readonly Node[]): string[] {
+    const names: string[] = [];
+    for (const param of params)
+      if (param.type == "Identifier")
+        names.push(param.name);
+    return names;
+  }
+
   paramBinding(params: readonly Node[]) {
+    if (params.length == 0) {
+      this.put("({})");
+      return;
+    }
     this.put("({ ");
     for (let i = 0; i < params.length; ++i) {
       if (i) this.put(", ");
@@ -81,27 +154,140 @@ class EvmGenerator extends Generator {
   }
 
   ReturnStatement(node: ReturnStatement) {
-    if (node.argument)
-      this.rec(node.argument);
+    if (!node.argument)
+      this.unsupported(node, "EVM return statements must return a value");
+    this.rec(node.argument);
   }
 
   ExpressionStatement(node: ExpressionStatement) {
     this.rec(node.expression);
   }
 
+  VariableDeclaration(node: VariableDeclaration) {
+    if (node.declarations.length != 1)
+      this.unsupported(node, "EVM variable declarations need one binding");
+    const declaration = node.declarations[0]!;
+    if (declaration.id.type != "Identifier")
+      this.unsupported(declaration.id, "EVM variable bindings must be identifiers");
+    if (!declaration.id.typeAnnotation)
+      this.unsupported(declaration.id, "EVM variable bindings need type annotations");
+    if (!declaration.init)
+      this.unsupported(declaration, "EVM variable bindings need initializers");
+    const typedLiteral = !this.isExpressionInit(declaration.init);
+    this.put(`set(${JSON.stringify(declaration.id.name)}, `);
+    if (typedLiteral) {
+      this.rec(declaration.id.typeAnnotation);
+      this.put(", ");
+    }
+    this.rec(declaration.init);
+    this.put(")");
+    this.locals.add(declaration.id.name);
+  }
+
+  isExpressionInit(node: Node): boolean {
+    if (
+      node.type == "CallExpression" ||
+      node.type == "BinaryExpression" ||
+      node.type == "AssignmentExpression"
+    )
+      return true;
+    if (node.type == "Identifier")
+      return this.locals.has(node.name) || this.params.has(node.name);
+    if (node.type == "MemberExpression")
+      return node.computed &&
+        node.object.type == "Identifier" &&
+        this.arrays.has(node.object.name);
+    return false;
+  }
+
   CallExpression(node: CallExpression) {
     this.rec(node.callee);
     this.put("(");
-    this.arr(node.arguments, ", ");
+    this.arr([
+      ...node.arguments,
+      ...((node as any).typeArguments?.params ?? []),
+    ], ", ");
     this.put(")");
+  }
+
+  AssignmentExpression(node: AssignmentExpression) {
+    if (node.operator != "=")
+      this.unsupported(node, `Unsupported EVM assignment operator ${node.operator}`);
+    this.put("set(");
+    this.rec(node.left);
+    this.put(", ");
+    this.rec(node.right);
+    this.put(")");
+  }
+
+  BinaryExpression(node: BinaryExpression) {
+    const op = {
+      "&": "bitAnd",
+      "*": "mul",
+      "-": "sub",
+      ">>": "shr",
+      "==": "eq",
+    }[node.operator];
+    if (!op)
+      this.unsupported(node, `Unsupported EVM binary operator ${node.operator}`);
+
+    this.put(op + "(");
+    if (node.operator == ">>") {
+      this.rec(node.right);
+      this.put(", ");
+      this.rec(node.left);
+    } else {
+      this.rec(node.left);
+      this.put(", ");
+      this.rec(node.right);
+    }
+    this.put(")");
+  }
+
+  ForInStatement(node: ForInStatement) {
+    this.unrollForStatement(node);
+  }
+
+  ForOfStatement(node: ForOfStatement) {
+    this.unrollForStatement(node);
+  }
+
+  unrollForStatement(node: ForInStatement | ForOfStatement) {
+    if (!node.unroll)
+      this.unsupported(node, "Only unroll for loops are supported in EVM functions");
+    const name = this.loopBindingName(node.left);
+    this.put("unrollFor([], ");
+    this.rec(node.right);
+    this.put(`, (${name}) => `);
+    this.rec(node.body);
+    this.put(")");
+  }
+
+  loopBindingName(left: Node): string {
+    if (left.type == "Identifier")
+      return left.name;
+    if (left.type == "VariableDeclaration") {
+      if (left.declarations.length != 1)
+        this.unsupported(left, "EVM unroll loops need one binding");
+      const id = left.declarations[0]!.id;
+      if (id.type == "Identifier")
+        return id.name;
+    }
+    this.unsupported(left, "EVM unroll loop bindings must be identifiers");
   }
 
   MemberExpression(node: MemberExpression) {
     this.rec(node.object);
     if (node.computed) {
-      this.put("[");
-      this.rec(node.property);
-      this.put("]");
+      if (node.object.type == "Identifier" && this.arrays.has(node.object.name)) {
+        this.put(".at(");
+        this.rec(node.property);
+        this.put(")");
+      } else {
+        this.put("[");
+        this.rec(node.property);
+        this.put("]");
+      }
     } else {
       this.put(".");
       this.rec(node.property);
@@ -109,11 +295,16 @@ class EvmGenerator extends Generator {
   }
 
   Identifier(node: Identifier) {
+    if (this.locals.has(node.name)) {
+      this.put(`get(${JSON.stringify(node.name)})`);
+      return;
+    }
     this.put(node.name);
   }
 
   Literal(node: Literal) {
-    this.put(node.raw ?? JSON.stringify(node.value));
+    const raw = node.raw ?? JSON.stringify(node.value);
+    this.put(raw.endsWith("n") ? raw.slice(0, -1) : raw);
   }
 
   TSIndexedAccessType(node: any) {

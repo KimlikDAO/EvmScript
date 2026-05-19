@@ -1,12 +1,12 @@
 import { expect, test } from "bun:test";
 import { assemble } from "../assembler";
-import { eq, keccak256, mstore, sub } from "../builtins";
+import { eq, keccak256, mstore, returnOrRevert, sub } from "../builtins";
 import { get } from "../expression";
 import { inline } from "../function";
 import { array, calldata } from "../array";
 import { Op } from "../opcodes";
-import { set } from "../statement";
-import { Data, Uint } from "../types";
+import { blob, set } from "../statement";
+import { Bool, Data, Uint } from "../types";
 
 const numberOps = (code: readonly unknown[]): number[] =>
   code.filter((atom): atom is number => typeof atom == "number");
@@ -46,6 +46,21 @@ test("inline body must end with a single-output expression", () => {
   expect(() => inline({ x: Uint }, ({ x }) => [
     set("y", x),
   ])).toThrow("inline body must end with an expression");
+});
+
+test("inline accepts halting bodies", () => {
+  const done = inline(
+    { ok: Bool },
+    ({ ok }) => [
+      returnOrRevert(ok, 0, 1),
+      blob(Uint8Array.of(0xaa), "tail"),
+    ],
+  );
+  const expr = done(true);
+
+  expect(String(expr.frag.signature)).toBe("(Bool) → 1|, ⊢");
+  expect(numberOps(expr.frag.code)).toContain(Op.RETURN);
+  expect(expr.frag.code.some((atom) => atom instanceof Uint8Array)).toBe(true);
 });
 
 test("inline accepts arrays supplied at the call site", () => {

@@ -3482,6 +3482,23 @@ function tsPlugin(options?: {
           if (result) return result;
         }
         if (
+          this.isContextual('unroll') &&
+          !this.hasFollowingLineBreak() &&
+          this.lookahead().type === tt._for
+        ) {
+          this.next();
+          const node = super.parseStatement(context, topLevel, exports);
+          if (
+            node.type !== 'ForInStatement' &&
+            node.type !== 'ForOfStatement' &&
+            node.type !== 'ForStatement'
+          ) {
+            this.raise(node.start, "Expected 'for' after 'unroll'");
+          }
+          node.unroll = true;
+          return node;
+        }
+        if (
           this.isContextual('evm') &&
           !this.hasFollowingLineBreak() &&
           this.lookahead().type === tt._function

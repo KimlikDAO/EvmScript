@@ -1,8 +1,9 @@
 # Abstract stack problem
 
-As explained in [Functions](functions.md), an inline body is eventually lowered
-statement by statement. For each statement, the binder calls into the solver to
-answer a concrete optimization question:
+As explained in [Functions](functions.md), an `.evm.ts` function body is
+transpiled to an inline body and then lowered statement by statement. For each
+statement, the binder calls into the solver to answer a concrete optimization
+question:
 
 > Given the values already on the stack, what is the minimum-cost sequence of
 > opcodes that computes this expression while preserving the values that future
@@ -33,7 +34,7 @@ EvmScript makes the problem tractable without giving up the ambition. The
 optimization boundary is statement by statement, but that does **not** mean each
 statement is optimized in isolation. Each statement is solved against the exact
 stack signature produced by the code before it and a keep list computed from the
-rest of the body. The search depends on both the past and the future.
+rest of the `.evm.ts` body. The search depends on both the past and the future.
 
 That framework is expressive enough to generate programs that are better than
 hand-written EVM assembly in almost all ordinary cases. Humans are not good at
@@ -78,7 +79,8 @@ among all valid paths in the abstract model.
 
 ## From expressions to a problem
 
-The binder converts an EvmScript expression tree into this integer problem:
+The binder converts the expression tree produced from `.evm.ts` syntax into
+this integer problem:
 
 * Current named stack values become negative ids.
 * Expression nodes become positive ids.

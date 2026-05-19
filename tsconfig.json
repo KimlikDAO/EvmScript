@@ -28,6 +28,8 @@
   "include": ["./**/*.ts"],
   "exclude": [
     "**/*.evm.ts",
+    "**/*.generated.ts",
+    "examples/test/**",
     "transpiler/**",
     "**/node_modules",
     "**/.kdts_isolate",

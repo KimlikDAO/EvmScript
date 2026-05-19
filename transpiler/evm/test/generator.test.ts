@@ -43,10 +43,96 @@ test("prints evm functions as inline expressions", () => {
   const declaration = ast.body[0] as any;
   const fn = declaration.declarations[0].init;
 
-  expect(generate(fn)).toBe(`inline({ hash: Data, proof: array(Data, 32) }, ({ hash, proof }) => [
-  mstore(0, proof[0]),
-  keccak256(0, 64)
-])`);
+  expect(generate(fn)).toBe(`inline(
+  { hash: Data, proof: array(Data, 32) },
+  ({ hash, proof }) => [
+    mstore(0, proof.at(0)),
+    keccak256(0, 64)
+  ]
+)`);
+});
+
+test("prints merkle-shaped evm body constructs", () => {
+  const ast = TsParser.parse(stripIndent(`
+    const verify = evm (
+      hash: Data,
+      index: Uint,
+      proof: Data[32],
+    ): Bool => {
+      unroll for (const level in range(32)) {
+        hash = hashPairAtOffset(proof[level], (index & 1) * 32, hash);
+        index = index >> 1;
+      }
+      return hash == sload<Data>(0);
+    };
+  `), {
+    sourceType: "module",
+    ecmaVersion: "latest",
+  });
+
+  const declaration = ast.body[0] as any;
+  const fn = declaration.declarations[0].init;
+
+  expect(generate(fn)).toBe(`inline(
+  { hash: Data, index: Uint, proof: array(Data, 32) },
+  ({ hash, index, proof }) => [
+    unrollFor([], range(32), (level) => [
+      set(hash, hashPairAtOffset(proof.at(level), mul(bitAnd(index, 1), 32), hash)),
+      set(index, shr(1, index))
+    ]),
+    eq(hash, sload(0, Data))
+  ]
+)`);
+});
+
+test("prints local bindings in zero-parameter evm functions", () => {
+  const ast = TsParser.parse(stripIndent(`
+    const send = evm (): Bool => {
+      const value: Weis = amount;
+      unroll for (const recipient of recipients) {
+        call(0, recipient, value, 0, 0, 0, 0);
+      }
+    };
+  `), {
+    sourceType: "module",
+    ecmaVersion: "latest",
+  });
+
+  const declaration = ast.body[0] as any;
+  const fn = declaration.declarations[0].init;
+
+  expect(generate(fn)).toBe(`inline(
+  {},
+  ({}) => [
+    set("value", Weis, amount),
+    unrollFor([], recipients, (recipient) => [
+      call(0, recipient, get("value"), 0, 0, 0, 0)
+    ])
+  ]
+)`);
+});
+
+test("prints expression local initializers without literal type wrapping", () => {
+  const ast = TsParser.parse(stripIndent(`
+    const proxy = evm (): Bool => {
+      const success: Bool = delegateCall(gas(), impl, 0, calldataSize(), 0, 0);
+      return returnOrRevert(success, 0, returndataSize());
+    };
+  `), {
+    sourceType: "module",
+    ecmaVersion: "latest",
+  });
+
+  const declaration = ast.body[0] as any;
+  const fn = declaration.declarations[0].init;
+
+  expect(generate(fn)).toBe(`inline(
+  {},
+  ({}) => [
+    set("success", delegateCall(gas(), impl, 0, calldataSize(), 0, 0)),
+    returnOrRevert(get("success"), 0, returndataSize())
+  ]
+)`);
 });
 
 test("throws on unsupported evm function parameters", () => {

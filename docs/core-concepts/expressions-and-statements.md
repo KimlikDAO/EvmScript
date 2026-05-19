@@ -1,10 +1,12 @@
 # Expressions and Statements
 
-An EvmScript body is a sequence of body items. Most user-written body items fall
-into one of two categories:
+An EvmScript body is the body of an `evm (...) => {}` function in a `.evm.ts`
+file. It is ordinary TypeScript syntax with EVM meaning attached to a small set
+of constructs. Most user-written body items fall into one of two categories:
 
 * value-producing `Expression`s;
-* effect-oriented statements, such as `set(...)`, labels, and blobs.
+* effect-oriented statements, such as assignments, typed local bindings, calls,
+  labels, and blobs.
 
 Every body item eventually becomes a `Fragment` before assembly. Until then,
 most EvmScript code is represented as a small tree of fragments, not as a fixed
@@ -24,8 +26,9 @@ many subexpressions unspecified, including function arguments and most operator
 operands. The rule of thumb is the same: expressions describe values and
 dependencies; statements describe sequencing.
 
-If an exact evaluation order is required, break the expression into statements
-and write those statements in the desired order.
+If an exact evaluation order is required, break the expression into separate
+statements in the `.evm.ts` body and write those statements in the desired
+order.
 
 ## Expressions
 
@@ -34,10 +37,10 @@ has an internal fragment with a stack signature, and its children provide the
 values required by that signature. Expression leaves can be literals, stack
 references, calldata references, or closed expression nodes with no inputs.
 
-For example:
+For example, inside an `.evm.ts` function:
 
 ```typescript
-set(e, mul(m, mul(c, c)));
+e = m * c * c;
 ```
 
 The expression here is `mul(m, mul(c, c))`, representing `m * c * c`. The outer
@@ -54,23 +57,26 @@ A `StackRef` is a compile-time reference to a named value currently living on
 the EVM stack.
 
 ```typescript
-import { get } from "../core/expression";
-
-const amount = get("amount", Weis);
+const send = evm (amount: Weis): Bool => {
+  return call(0, recipient, amount, 0, 0, 0, 0);
+}
 ```
 
-Most users get `StackRef`s from `inline` parameters:
+The parameter `amount` is not a JavaScript number at runtime. In the generated
+form it becomes a `StackRef`, roughly:
 
 ```typescript
-const dec = inline({ x: Uint }, ({ x }) => sub(x, 1));
+inline({ amount: Weis }, ({ amount }) => [
+  call(0, recipient, amount, 0, 0, 0, 0)
+])
 ```
 
 Names are resolved at binding time. If a name is not present in the current
 stack signature, binding fails with an unknown stack name error.
 
 Stack references are also how reassignment-like code works. In the Merkle
-example, `set(hash, ...)` binds the new expression result to the same logical
-name and erases the older binding.
+example, `hash = ...` binds the new expression result to the same logical name
+and erases the older binding. The generated form uses `set(hash, ...)`.
 
 ## CalldataRef
 
@@ -81,7 +87,8 @@ calldataLoad(0, Data)
 calldataLoad(32, Uint)
 ```
 
-For fixed calldata layouts, `calldata()` and `array()` build typed references:
+For fixed calldata layouts, `calldata()` and `array()` build typed references
+from TypeScript test or deployment code:
 
 ```typescript
 const cd = calldata({
@@ -103,30 +110,26 @@ A `Statement` is any body item that can be lowered into a fragment. This
 includes:
 
 * `ExpressionStatement`: emitted for its side effect or result.
-* `SetStatement`: created with `set(...)` to bind expression output names.
+* assignment and typed local declarations, lowered to `SetStatement`s.
 * `Label`: a symbolic position in bytecode.
 * `Blob`: raw byte data placed in the program.
 
 Statements impose order. The binder may reorder work inside a single expression,
 but it lowers body statements from left to right.
 
-Bodies may be nested arrays of statements. `unrollFor` uses this to let ordinary
-TypeScript loops generate repeated statement bodies:
+Bodies may be nested arrays of statements. In `.evm.ts`, `unroll for` asks the
+transpiler to generate those repeated statement bodies:
 
 ```typescript
-unrollFor(
-  [],
-  range(depth),
-  (level) => [
-    set(hash, hashPairAtOffset(
-      proof.at(level),
-      mul(bitAnd(index, 1), 32),
-      hash,
-    )),
-    set(index, shr(1, index)),
-  ],
-);
+unroll for (const level in range(depth)) {
+  hash = hashPairAtOffset(proof[level], (index & 1) * 32, hash);
+  index = index >> 1;
+}
 ```
+
+That syntax lowers to `unrollFor(...)`, `set(...)`, `.at(...)`, and helper calls
+such as `mul(...)`, `bitAnd(...)`, and `shr(...)`. Users author the EVM-shaped
+TypeScript; the lowered call tree is the compiler target.
 
 ## Binding
 

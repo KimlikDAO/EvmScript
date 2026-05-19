@@ -93,3 +93,22 @@ test("ordinary functions carry evm false", () => {
   expectNodeType(genericAsync, "ArrowFunctionExpression");
   expect(genericAsync.evm).toBe(false);
 });
+
+test("unroll for loops parse as marked for-in statements", () => {
+  const ast = parseSource(`
+    const verify = evm (): Bool => {
+      unroll for (const level in range(32)) {
+        mstore(0, level);
+      }
+      return true;
+    };
+  `);
+
+  const stmt = ast.body[0];
+  expectNodeType(stmt, "VariableDeclaration");
+  const fn = stmt.declarations[0].init;
+  expectNodeType(fn, "ArrowFunctionExpression");
+  const loop = fn.body.body[0];
+  expectNodeType(loop, "ForInStatement");
+  expect(loop.unroll).toBe(true);
+});

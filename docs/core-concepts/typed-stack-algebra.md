@@ -1,7 +1,8 @@
 # Typed stack algebra
 
-EvmScript generates EVM programs by composing small pieces of bytecode with
-typed stack effects. These pieces are called `Fragment`s.
+EvmScript starts from `.evm.ts` functions and generates EVM programs by
+composing small pieces of bytecode with typed stack effects. These pieces are
+called `Fragment`s.
 
 A `Fragment` has two parts:
 
@@ -143,5 +144,5 @@ compose(a, compose(b, c)) == compose(compose(a, b), c)
 ```
 
 This property is important because larger EvmScript programs are built by
-lowering nested expressions, statements, function bodies, and generated code
-into ordinary fragment composition.
+lowering `.evm.ts` expressions, statements, function bodies, and generated
+TypeScript helper code into ordinary fragment composition.

@@ -521,6 +521,18 @@ declare module "acorn" {
     typeParameters?: TSTypeParameterDeclaration;
   }
 
+  interface ForInStatement {
+    unroll?: boolean;
+  }
+
+  interface ForOfStatement {
+    unroll?: boolean;
+  }
+
+  interface ForStatement {
+    unroll?: boolean;
+  }
+
   interface MethodDefinition {
     modifiers: Modifier;
     optional?: boolean;

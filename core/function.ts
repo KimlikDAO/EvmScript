@@ -112,6 +112,8 @@ const scalarPrefix = (
 
 const returnedFragment = (prefix: Fragment, body: Body): Fragment => {
   const statements = flattenBody(body);
+  if (statements.some(isHaltingExpression))
+    return bodyFrom(prefix, statements);
   const last = statements.at(-1);
   if (!(last instanceof Expression))
     throw new TypeError("inline body must end with an expression");
@@ -125,6 +127,9 @@ const returnedFragment = (prefix: Fragment, body: Body): Fragment => {
     bind(prefixFrag.signature, last, new Set()),
   ));
 }
+
+const isHaltingExpression = (stmt: Body): boolean =>
+  stmt instanceof Expression && !!stmt.frag.signature.halt;
 
 const onlyTop = (frag: Fragment): Fragment => {
   const { ensure } = frag.signature;

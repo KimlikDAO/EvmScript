@@ -4,9 +4,10 @@
 [![npm version](https://img.shields.io/npm/v/@kimlikdao/evmscript.svg)](https://www.npmjs.com/package/@kimlikdao/evmscript)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-EvmScript is TypeScript that compiles to lean EVM bytecode. It is an
-experimental library and framework for generating, testing, and deploying
-gas-efficient Ethereum Virtual Machine programs from the TypeScript ecosystem.
+EvmScript is an EVM language inside TypeScript: write `.evm.ts` files and get
+lean EVM bytecode. It is an experimental language, compiler, and library stack
+for generating, testing, and deploying gas-efficient Ethereum Virtual Machine
+programs from the TypeScript ecosystem.
 
 It is built around a typed stack algebra: EVM programs are composed from
 `Fragment`s whose stack effects are checked at compile time, then assembled into
@@ -37,12 +38,18 @@ TypeScript from the package lockfile.
 
 ## Authoring Model
 
-Today, EvmScript programs are written in ordinary `.ts` files using the lowered
-library API. The upcoming `.tsevm` syntax will work like a TypeScript language
-extension, similar in spirit to `.tsx`: domain-specific syntax is transpiled
-back into regular TypeScript library calls.
+EvmScript programs are written in `.evm.ts` files. The file is still
+TypeScript, but with a small EVM syntax extension: `evm (...) => {}` functions,
+typed EVM words, fixed arrays like `Data[32]`, stack-style reassignment, and
+`unroll for` loops.
 
-For example, a future `.tsevm` Merkle verifier could be written as:
+Under the hood, `.evm.ts` works like `.tsx`: the syntax you write is
+transpiled into regular TypeScript calls before Bun runs the module. You author
+the EVM program, not the lowered call tree. In the same way React users do not
+write `jsx("div", ...)` by hand, EvmScript users should not need to write
+`inline(...)`, `set(...)`, or `unrollFor(...)` directly for supported syntax.
+
+For example, a Merkle verifier can be written directly as:
 
 ```ts
 const verifyMerkle = evm (
@@ -58,16 +65,16 @@ const verifyMerkle = evm (
 }
 ```
 
-That author-facing syntax lowers into the library form used by the compiler
-today:
+That author-facing syntax is what you work with. The compiler lowers it into
+regular TypeScript library calls similar to this:
 
 ```ts
 const verifyMerkle = inline(
-  { hash: Data, index: Uint, proof: array(Data, depth) },
+  { hash: Data, index: Uint, proof: array(Data, 32) },
   ({ hash, index, proof }) => [
     unrollFor(
       [],
-      range(depth),
+      range(32),
       (level) => [
         set(hash, hashPairAtOffset(
           proof.at(level),
@@ -82,15 +89,17 @@ const verifyMerkle = inline(
 );
 ```
 
-Because programs live directly inside TypeScript, metaprogramming stays
-ordinary TypeScript: functions, loops, arrays, sorting, grouping, fixtures,
-tests, and deployment scripts all come from the same toolchain.
+Because `.evm.ts` is still TypeScript, metaprogramming stays ordinary
+TypeScript: functions, loops, arrays, sorting, grouping, fixtures, tests, and
+deployment scripts all come from the same toolchain. The batch send and proxy
+examples build EVM functions with normal TypeScript helper code, while the EVM
+bodies themselves stay in `evm () => {}` syntax.
 
 ## Core Ideas
 
 - **Typed stack algebra**: bytecode fragments carry typed stack signatures, so
   composition fails early when stack values do not line up.
-- **Expression and statement lowering**: TypeScript builders lower expressions,
+- **EVM syntax inside TypeScript**: `.evm.ts` files lower expressions,
   assignments, loops, and function bodies into fragment composition.
 - **Solver-guided assembly**: the binder converts each statement into an
   abstract stack problem, then a direct strategy or A* search finds the optimal
@@ -101,9 +110,9 @@ tests, and deployment scripts all come from the same toolchain.
 
 ## Examples
 
-- [`examples/merkle.ts`](examples/merkle.ts): a Merkle proof verifier
-- [`examples/batchSend.ts`](examples/batchSend.ts): grouped batch ETH sends
-- [`examples/proxies.ts`](examples/proxies.ts): small proxy programs
+- [`examples/merkle.evm.ts`](examples/merkle.evm.ts): a Merkle proof verifier
+- [`examples/batchSend.evm.ts`](examples/batchSend.evm.ts): grouped batch ETH sends
+- [`examples/proxies.evm.ts`](examples/proxies.evm.ts): small proxy programs
 
 ## Development
 

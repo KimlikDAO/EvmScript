@@ -15,11 +15,19 @@ test("replaces evm arrow functions with generated inline bodies", () => {
 
   expect(transformEvmSource(source)).toBe(stripIndent(`
     import { Data } from "../core/types";
+    import { bitAnd, call, eq, keccak256, mstore, mul, range, shr, sload, sub } from "../core/builtins";
+    import { inline } from "../core/function";
+    import { array } from "../core/array";
+    import { set, unrollFor } from "../core/statement";
+    import { get } from "../core/expression";
 
     const keep = (x: number) => x + 1;
-    const verify = inline({ hash: Data }, ({ hash }) => [
-      hash
-    ]);
+    const verify = inline(
+      { hash: Data },
+      ({ hash }) => [
+        hash
+      ]
+    );
     const done = true;
   `));
 });
@@ -32,9 +40,17 @@ test("replaces evm function expressions with generated inline bodies", () => {
   `);
 
   expect(transformEvmSource(source)).toBe(stripIndent(`
-    const verify = inline({ hash: Data }, ({ hash }) => [
-      hash
-    ]);
+    import { bitAnd, call, eq, keccak256, mstore, mul, range, shr, sload, sub } from "../core/builtins";
+    import { inline } from "../core/function";
+    import { array } from "../core/array";
+    import { set, unrollFor } from "../core/statement";
+    import { get } from "../core/expression";
+    const verify = inline(
+      { hash: Data },
+      ({ hash }) => [
+        hash
+      ]
+    );
   `));
 });
 
@@ -46,9 +62,17 @@ test("replaces evm function declarations with const inline bodies", () => {
   `);
 
   expect(transformEvmSource(source)).toBe(stripIndent(`
-    const verify = inline({ hash: Data }, ({ hash }) => [
-      hash
-    ]);
+    import { bitAnd, call, eq, keccak256, mstore, mul, range, shr, sload, sub } from "../core/builtins";
+    import { inline } from "../core/function";
+    import { array } from "../core/array";
+    import { set, unrollFor } from "../core/statement";
+    import { get } from "../core/expression";
+    const verify = inline(
+      { hash: Data },
+      ({ hash }) => [
+        hash
+      ]
+    );
   `));
 });
 
@@ -62,4 +86,30 @@ test("keeps ordinary functions source-preserved", () => {
   `);
 
   expect(transformEvmSource(source)).toBe(source);
+});
+
+test("indents nested evm function replacements", () => {
+  const source = stripIndent(`
+    const make = () => {
+      return evm (): Bool => {
+        return call(0, recipient, amount, 0, 0, 0, 0);
+      };
+    }
+  `);
+
+  expect(transformEvmSource(source)).toBe(stripIndent(`
+    import { bitAnd, call, eq, keccak256, mstore, mul, range, shr, sload, sub } from "../core/builtins";
+    import { inline } from "../core/function";
+    import { array } from "../core/array";
+    import { set, unrollFor } from "../core/statement";
+    import { get } from "../core/expression";
+    const make = () => {
+      return inline(
+        {},
+        ({}) => [
+          call(0, recipient, amount, 0, 0, 0, 0)
+        ]
+      );
+    }
+  `));
 });

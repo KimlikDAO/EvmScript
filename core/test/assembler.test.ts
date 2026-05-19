@@ -1,6 +1,5 @@
 import { expect, test } from "bun:test";
 import { assemble } from "../assembler";
-import { createUpgradableProxy } from "../../examples/proxies";
 import { Fragment, LabelPos, LabelRef } from "../fragment";
 import { Op } from "../opcodes";
 import { label, set } from "../statement";
@@ -20,13 +19,6 @@ test("assemble accepts statement inputs through body", () => {
 
 test("assemble accepts recursive bodies through body", () => {
   expect([...assemble([[set("x", Uint, 0)]])]).toEqual([Op.PUSH0]);
-});
-
-test("assemble builds the upgradable proxy recipe", () => {
-  const addr = "0x1111111111111111111111111111111111111111";
-  const slot = Uint8Array.from(Array(32).fill(1));
-
-  expect(createUpgradableProxy(addr, slot).length).toBeGreaterThan(0);
 });
 
 test("assemble resolves jump labels by fixed point", () => {

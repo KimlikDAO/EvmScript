@@ -2,12 +2,12 @@ import { createEVM } from "@ethereumjs/evm";
 import { createZeroAddress } from "@ethereumjs/util";
 import { expect, test } from "bun:test";
 import { keccak256Uint8 } from "@kimlikdao/lib/crypto/sha3";
-import { assemble } from "../assembler";
-import { calldataLoad, mstore, ret } from "../builtins";
-import { array, calldata as calldataLayout } from "../array";
-import { Op } from "../opcodes";
-import { verifyMerkle } from "../../examples/merkle";
-import { Data, Uint } from "../types";
+import { array, calldata } from "../../core/array";
+import { assemble } from "../../core/assembler";
+import { calldataLoad, mstore, ret } from "../../core/builtins";
+import { Op } from "../../core/opcodes";
+import { Data, Uint } from "../../core/types";
+import { verifyMerkle } from "../merkle.evm";
 
 const word = (lastByte: number): Uint8Array<ArrayBuffer> => {
   const out = new Uint8Array(32);
@@ -56,8 +56,19 @@ const encodeCalldata = (
   proof: readonly Uint8Array[],
 ): Uint8Array<ArrayBuffer> => concat(leaf, wordBigint(index), ...proof);
 
+const verifyMerkleProgram = (): Uint8Array<ArrayBuffer> => {
+  const proof = calldata({ proof: [64, array(Data, 32)] }).proof;
+  return assemble(
+    mstore(0, verifyMerkle(
+      calldataLoad(0, Data),
+      calldataLoad(32, Uint),
+      proof,
+    )),
+    ret(0, 32),
+  );
+}
+
 const runVerifier = async (
-  depth: number,
   root: Uint8Array,
   data: Uint8Array,
 ): Promise<Uint8Array> => {
@@ -67,54 +78,40 @@ const runVerifier = async (
     new Uint8Array(32),
     root,
   );
-  const result = await evm.runCode({ code: verifyMerkleProgram(depth), data });
+  const result = await evm.runCode({ code: verifyMerkleProgram(), data });
   expect(result.exceptionError).toBeUndefined();
   return result.returnValue;
 }
 
-const verifyMerkleProgram = (depth: number): Uint8Array<ArrayBuffer> =>
-  assemble(
-    mstore(0, verifyMerkle(depth)(
-      calldataLoad(0, Data),
-      calldataLoad(32, Uint),
-      calldataLayout({
-        leaf: [0, Data],
-        index: [32, Uint],
-        proof: [64, array(Data, depth)],
-      }).proof,
-    )),
-    ret(0, 32),
-  );
-
-test("verifyMerkle assembles a fixed-depth verifier", () => {
-  const verifier = verifyMerkle(2);
-  const program = verifyMerkleProgram(2);
-
-  expect(String(verifier(
+test("merkle.evm.ts imports as a module and assembles", () => {
+  const proof = calldata({ proof: [64, array(Data, 32)] }).proof;
+  const expr = verifyMerkle(
     calldataLoad(0, Data),
     calldataLoad(32, Uint),
-    calldataLayout({ proof: [64, array(Data, 2)] }).proof,
-  ).frag.signature)).toBe("(Data, Uint) → 2|Bool");
+    proof,
+  );
+  const program = verifyMerkleProgram();
+
+  expect(String(expr.frag.signature)).toBe("(Data, Uint) → 2|Bool");
   expect(program).toContain(Op.CALLDATALOAD);
   expect(program).toContain(Op.MSTORE);
   expect(program).toContain(Op.SHA3);
   expect(program).toContain(Op.SLOAD);
   expect(program).toContain(Op.RETURN);
-  expect(verifyMerkleProgram(32).length).toBeGreaterThan(0);
 });
 
-test("verifyMerkle accepts and rejects proofs against storage root", async () => {
+test("merkle.evm.ts accepts and rejects proofs against storage root", async () => {
   const leaf = word(0x11);
-  const proof = [word(0x22), word(0x33)];
+  const proof = Array.from({ length: 32 }, (_, i) => word(0x22 + i));
   const index = 1n;
   const root = rootOf(leaf, proof, index);
   const data = encodeCalldata(leaf, index, proof);
 
-  const valid = await runVerifier(2, root, data);
+  const valid = await runVerifier(root, data);
   expect(valid).toEqual(wordBigint(1n));
 
   const badRoot = root.slice();
   badRoot[0] ^= 1;
-  const invalid = await runVerifier(2, badRoot, data);
+  const invalid = await runVerifier(badRoot, data);
   expect(invalid).toEqual(wordBigint(0n));
 });
