@@ -26,5 +26,11 @@
     "strictPropertyInitialization": true,
   },
   "include": ["./**/*.ts"],
-  "exclude": ["**/node_modules", "**/.kdts_isolate", "**/build"],
+  "exclude": [
+    "**/*.evm.ts",
+    "transpiler/**",
+    "**/node_modules",
+    "**/.kdts_isolate",
+    "**/build",
+  ],
 }
