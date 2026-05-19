@@ -11,7 +11,8 @@ testing, and deployment workflow stays in the TypeScript ecosystem.
 It is built around a typed stack algebra: EVM programs are composed from
 `Fragment`s whose stack effects are checked at compile time, then assembled into
 compact bytecode. For each statement, EvmScript searches for the minimum-cost
-stack choreography instead of relying on hand-written `DUP`/`SWAP` sequences.
+stack choreography using a smart and guided combinatorial search instead of
+relying on hand-written `DUP`/`SWAP` sequences.
 
 ## Why EvmScript?
 
@@ -24,7 +25,8 @@ bytes compounds over many transactions.
 The goal is to keep the authoring experience TypeScript-native while giving the
 compiler room to produce bytecode that is hard to match by hand. Optimal stack
 dances are often non-obvious even in small programs; EvmScript models that
-problem directly and searches the state space.
+problem directly and searches the state space using advanced combinatorial
+algorithms.
 
 ## Install
 
@@ -39,11 +41,11 @@ TypeScript from the package lockfile.
 
 EvmScript programs are authored in `.evm.ts` files. These are TypeScript
 modules with a small EVM syntax extension: `evm (...) => {}` functions, typed
-EVM words, fixed arrays like `Data[32]`, stack-style reassignment, and
+EVM words, fixed arrays like `Data[32]`, stack-resident local variables, and
 `unroll for` loops.
 
 The model is similar to `.tsx`: the author-facing syntax is transpiled into
-regular TypeScript calls before Bun runs the module. The lowered
+regular TypeScript calls before the runtime executes the module. The lowered
 `inline(...)`, `set(...)`, and `unrollFor(...)` form remains the compiler
 target, but it is not the normal surface for writing EvmScript programs.
 
@@ -88,9 +90,10 @@ const verifyMerkle = inline(
 
 Because EVM functions are embedded in TypeScript, metaprogramming happens in
 ordinary TypeScript rather than in a separate macro language. Generation-time
-code can use functions, loops, arrays, sorting, grouping, fixtures, tests, and
-deployment scripts directly. The batch send and proxy examples use TypeScript
-helper code to construct EVM functions, while the bytecode bodies remain in
+code can use functions, loops, arrays, sorting, or any valid TypeScript code.
+Similarly fixtures, tests, and deployment scripts live side by side in the same
+language. The batch send and proxy examples use TypeScript helper code to
+construct EVM functions, while the bytecode bodies remain in
 `evm () => {}` syntax.
 
 ## Core Ideas

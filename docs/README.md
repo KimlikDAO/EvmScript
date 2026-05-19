@@ -116,7 +116,7 @@ gas on the table.
 
 EvmScript programs are authored in `.evm.ts` files. These are TypeScript
 modules with a small EVM language extension: `evm (...) => {}` functions, typed
-EVM words, fixed arrays such as `Data[32]`, stack-style reassignment, and
+EVM words, fixed arrays such as `Data[32]`, stack-resident local variables, and
 `unroll for` loops.
 
 The model is similar to `.tsx`: the author-facing syntax is parsed and
