@@ -104,6 +104,13 @@ point is to keep the authoring environment TypeScript-native while giving the
 compiler direct control over stack layout, liveness, bytecode size, and opcode
 choice.
 
+Dropping down to Yul or hand-written assembly does not automatically get you
+close to optimal EVM. For compute-heavy code, the best `DUP`/`SWAP` choreography
+is often highly non-trivial and counter-intuitive; EvmScript searches that space
+directly. For storage-heavy code, storage costs may dominate, but when stack
+motion and arithmetic matter, human-written low-level code can leave a lot of
+gas on the table.
+
 ## Authoring model
 
 Today, EvmScript programs are written in ordinary `.ts` files using the lowered
