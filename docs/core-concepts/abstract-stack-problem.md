@@ -28,7 +28,7 @@ but it is still a hard planning problem rather than a cosmetic peephole pass.
 The decision version, "is there a valid sequence with cost at most `C`?", ranges
 over an exponentially large graph of stack states. We suspect the general form
 is PSPACE-complete, though that should be read as a complexity conjecture until
-we write down the reduction.
+a reduction is written down.
 
 EvmScript makes the problem tractable without giving up the ambition. The
 optimization boundary is statement by statement, but that does **not** mean each
@@ -124,4 +124,4 @@ ways to trade stack work against memory layout work.
 As the search space grows, we expect to keep the A* solver as a strong baseline
 and explore policy-guided search as well. One direction is an iterative
 policy-learning searcher, AlphaZero-like in spirit, that learns which stack
-actions are promising for the kinds of programs EvmScript users actually write.
+actions are promising for the kinds of programs built with EvmScript.

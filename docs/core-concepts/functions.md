@@ -5,12 +5,12 @@ Currently, `.evm.ts` functions lower to inline functions.
 {% endhint %}
 
 Functions are the main authoring unit in `.evm.ts`. An `evm (...) => {}` body
-looks like TypeScript, but it lowers to a reusable EvmScript builder with a
+uses TypeScript syntax, then lowers to a reusable EvmScript builder with a
 typed interface and a bytecode-producing body.
 
 ## EVM functions
 
-You normally write this:
+The authoring form is:
 
 ```typescript
 const hashPairAtOffset = evm (
@@ -24,7 +24,7 @@ const hashPairAtOffset = evm (
 }
 ```
 
-The transpiler turns that into an `inline(schema, fn)` call:
+The transpiler turns this into an `inline(schema, fn)` call:
 
 ```typescript
 const hashPairAtOffset = inline(
@@ -62,11 +62,13 @@ function body as if it had been written in place.
 
 ## Host TypeScript
 
-Because `.evm.ts` is still TypeScript, ordinary helper code can construct and
-return EVM functions. The batch-send example groups recipients with normal
+Because `.evm.ts` remains TypeScript, ordinary helper code can construct and
+return EVM functions. This makes TypeScript the generation-time metaprogramming
+layer around EVM bodies. The batch-send example groups recipients with normal
 TypeScript sorting, then returns an `evm () => {}` function for the bytecode
 body. The proxy example builds runtime bytecode with one EVM function and embeds
 it as a blob in another.
 
-That split is deliberate: use TypeScript for generation, data shaping, tests,
-and deployment plumbing; use `evm (...) => {}` for the EVM program itself.
+This keeps generation, data shaping, tests, and deployment plumbing in
+TypeScript, while the bytecode-producing bodies stay inside `evm (...) => {}`
+functions.

@@ -4,10 +4,9 @@
 [![npm version](https://img.shields.io/npm/v/@kimlikdao/evmscript.svg)](https://www.npmjs.com/package/@kimlikdao/evmscript)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-EvmScript is an EVM language inside TypeScript: write `.evm.ts` files and get
-lean EVM bytecode. It is an experimental language, compiler, and library stack
-for generating, testing, and deploying gas-efficient Ethereum Virtual Machine
-programs from the TypeScript ecosystem.
+EvmScript is an EVM language embedded in TypeScript. Programs live in `.evm.ts`
+modules and compile to lean EVM bytecode, while the surrounding generation,
+testing, and deployment workflow stays in the TypeScript ecosystem.
 
 It is built around a typed stack algebra: EVM programs are composed from
 `Fragment`s whose stack effects are checked at compile time, then assembled into
@@ -38,18 +37,17 @@ TypeScript from the package lockfile.
 
 ## Authoring Model
 
-EvmScript programs are written in `.evm.ts` files. The file is still
-TypeScript, but with a small EVM syntax extension: `evm (...) => {}` functions,
-typed EVM words, fixed arrays like `Data[32]`, stack-style reassignment, and
+EvmScript programs are authored in `.evm.ts` files. These are TypeScript
+modules with a small EVM syntax extension: `evm (...) => {}` functions, typed
+EVM words, fixed arrays like `Data[32]`, stack-style reassignment, and
 `unroll for` loops.
 
-Under the hood, `.evm.ts` works like `.tsx`: the syntax you write is
-transpiled into regular TypeScript calls before Bun runs the module. You author
-the EVM program, not the lowered call tree. In the same way React users do not
-write `jsx("div", ...)` by hand, EvmScript users should not need to write
-`inline(...)`, `set(...)`, or `unrollFor(...)` directly for supported syntax.
+The model is similar to `.tsx`: the author-facing syntax is transpiled into
+regular TypeScript calls before Bun runs the module. The lowered
+`inline(...)`, `set(...)`, and `unrollFor(...)` form remains the compiler
+target, but it is not the normal surface for writing EvmScript programs.
 
-For example, a Merkle verifier can be written directly as:
+A Merkle verifier, for example, can be expressed in the EVM syntax as:
 
 ```ts
 const verifyMerkle = evm (
@@ -65,8 +63,7 @@ const verifyMerkle = evm (
 }
 ```
 
-That author-facing syntax is what you work with. The compiler lowers it into
-regular TypeScript library calls similar to this:
+The compiler lowers this into regular TypeScript library calls similar to:
 
 ```ts
 const verifyMerkle = inline(
@@ -89,11 +86,12 @@ const verifyMerkle = inline(
 );
 ```
 
-Because `.evm.ts` is still TypeScript, metaprogramming stays ordinary
-TypeScript: functions, loops, arrays, sorting, grouping, fixtures, tests, and
-deployment scripts all come from the same toolchain. The batch send and proxy
-examples build EVM functions with normal TypeScript helper code, while the EVM
-bodies themselves stay in `evm () => {}` syntax.
+Because EVM functions are embedded in TypeScript, metaprogramming happens in
+ordinary TypeScript rather than in a separate macro language. Generation-time
+code can use functions, loops, arrays, sorting, grouping, fixtures, tests, and
+deployment scripts directly. The batch send and proxy examples use TypeScript
+helper code to construct EVM functions, while the bytecode bodies remain in
+`evm () => {}` syntax.
 
 ## Core Ideas
 

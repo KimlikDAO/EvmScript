@@ -28,9 +28,9 @@ layout:
   Ask a question...
 </button>
 
-EvmScript is an EVM language inside TypeScript: write `.evm.ts` files and get
-lean EVM bytecode. It is an experimental language, compiler, and library stack
-for writing gas-optimized EVM programs from the TypeScript ecosystem.
+EvmScript is an EVM language embedded in TypeScript. Programs live in `.evm.ts`
+modules and compile to lean EVM bytecode, while generation, testing, and
+deployment remain in the TypeScript ecosystem.
 
 It is built around a typed stack algebra: programs are composed from
 `Fragment`s with type-checked stack effects, then assembled into compact bytecode.
@@ -73,9 +73,9 @@ instead of relying on hand-written `DUP`/`SWAP` sequences.
     <tr>
       <td><strong>TypeScript-native</strong></td>
       <td>
-        Programs are authored in <code>.evm.ts</code>, transpiled like
-        <code>.tsx</code>, and tested, generated, and deployed with the
-        ordinary TypeScript toolchain.
+        Programs live in <code>.evm.ts</code> modules, transpile like
+        <code>.tsx</code>, and share the ordinary TypeScript toolchain used by
+        tests, generators, and deployment scripts.
       </td>
       <td>
         <a href="https://github.com/KimlikDAO/EvmScript">
@@ -98,50 +98,47 @@ Good fits include:
 * liquidations, auctions, rebalances, and batch settlements;
 * bridge operators, validator committees, and threshold-signature signer sets;
 * execution-heavy settlement transactions submitted by searchers and solvers;
-* any code path where you would otherwise hand-write EVM assembly to cut gas.
+* code paths where hand-written EVM assembly would otherwise be used to cut gas.
 
 The point is not to make EVM programming look high-level at all costs. The
 point is to keep the authoring environment TypeScript-native while giving the
 compiler direct control over stack layout, liveness, bytecode size, and opcode
 choice.
 
-Dropping down to Yul or hand-written assembly does not automatically get you
-close to optimal EVM. For compute-heavy code, the best `DUP`/`SWAP` choreography
-is often highly non-trivial and counter-intuitive; EvmScript searches that space
+Dropping down to Yul or hand-written assembly does not automatically approach
+optimal EVM. For compute-heavy code, the best `DUP`/`SWAP` choreography is often
+highly non-trivial and counter-intuitive; EvmScript searches that space
 directly. For storage-heavy code, storage costs may dominate, but when stack
 motion and arithmetic matter, human-written low-level code can leave a lot of
 gas on the table.
 
 ## Authoring model
 
-EvmScript programs are written in `.evm.ts` files. They are TypeScript modules
-with a small EVM language extension: `evm (...) => {}` functions, typed EVM
-words, fixed arrays such as `Data[32]`, stack-style reassignment, and
+EvmScript programs are authored in `.evm.ts` files. These are TypeScript
+modules with a small EVM language extension: `evm (...) => {}` functions, typed
+EVM words, fixed arrays such as `Data[32]`, stack-style reassignment, and
 `unroll for` loops.
 
-Under the hood, `.evm.ts` works like `.tsx`: the syntax is parsed and
-transpiled back into ordinary TypeScript library calls before Bun runs the
-module. The lowered form is an implementation detail. You do not write
-`inline(...)`, `set(...)`, or `unrollFor(...)` any more than React authors write
-`jsx("div", ...)` by hand.
+The model is similar to `.tsx`: the author-facing syntax is parsed and
+transpiled into ordinary TypeScript library calls before Bun runs the module.
+The lowered `inline(...)`, `set(...)`, and `unrollFor(...)` form remains the
+compiler target, but not the primary authoring surface.
 
-Because programs live directly inside TypeScript, metaprogramming is ordinary
-TypeScript. You can use functions, loops, arrays, sorting, grouping, bigints,
-tests, fixtures, and deployment scripts from the same toolchain you already use
-for the rest of your application.
+Because EVM functions are embedded in TypeScript, metaprogramming happens in
+ordinary TypeScript rather than in a separate macro language. Generation-time
+code can use functions, loops, arrays, sorting, grouping, bigints, fixtures,
+tests, and deployment scripts directly.
 
 Compilation produces EVM bytecode as a `Uint8Array`, ready to deploy with
-`viem`, `ethers`, `wagmi`, `@kimlikdao/lib`, or whichever Ethereum tooling you
-prefer.
+`viem`, `ethers`, `wagmi`, `@kimlikdao/lib`, or other Ethereum tooling.
 
-Every EVM construct supported by the current compiler is available through
-`.evm.ts` syntax. The library-call form still exists because it is the stable
-target of the transpiler and the place where the core optimizer works, but it is
-not the normal authoring surface.
+The EVM constructs supported by the current compiler are available through
+`.evm.ts` syntax. The library-call form remains important as the stable
+transpiler target and as the layer where the core optimizer works.
 
 ## A taste of `.evm.ts`
 
-EvmScript code looks like a small EVM language inside TypeScript:
+EvmScript code reads like a small EVM language inside TypeScript:
 
 {% code title="merkle.evm.ts" overflow="wrap" %}
 ```typescript
@@ -159,8 +156,8 @@ const verifyMerkle = evm (
 ```
 {% endcode %}
 
-That is the code you write. It lowers into regular TypeScript calls similar to
-the following:
+This authoring form lowers into regular TypeScript calls similar to the
+following:
 
 {% code title="generated TypeScript" expandable="true" %}
 ```typescript
@@ -187,9 +184,10 @@ const verifyMerkle = inline(
 
 ## How to read these docs
 
-Start with [Typed stack algebra](core-concepts/typed-stack-algebra.md) for the
-core representation, then read
+The core representation starts with
+[Typed stack algebra](core-concepts/typed-stack-algebra.md).
 [Expressions and Statements](core-concepts/expressions-and-statements.md) and
-[Functions](core-concepts/functions.md) to see what `.evm.ts` lowers into.
-The [Abstract stack problem](core-concepts/abstract-stack-problem.md) page
-explains the search problem behind EvmScript's stack choreography.
+[Functions](core-concepts/functions.md) describe the generated representation
+behind `.evm.ts`. The
+[Abstract stack problem](core-concepts/abstract-stack-problem.md) page explains
+the search problem behind EvmScript's stack choreography.

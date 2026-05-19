@@ -1,8 +1,8 @@
 # Expressions and Statements
 
 An EvmScript body is the body of an `evm (...) => {}` function in a `.evm.ts`
-file. It is ordinary TypeScript syntax with EVM meaning attached to a small set
-of constructs. Most user-written body items fall into one of two categories:
+file. It uses TypeScript syntax with EVM meaning attached to a small set of
+constructs. Body items generally fall into one of two categories:
 
 * value-producing `Expression`s;
 * effect-oriented statements, such as assignments, typed local bindings, calls,
@@ -14,21 +14,20 @@ sequence of opcodes. That tree is flattened only **after the binder sees the
 current stack configuration** and solves an optimization problem. For each
 statement, EvmScript uses the exact stack in front of it and the values future
 statements still need to search for the minimum-cost fragment that computes the
-expression the user wrote.
+source expression.
 
 Crucially, **the compiler is free to evaluate the nodes inside a single
-expression in whatever order minimizes gas cost**. A programmer should not rely
-on the evaluation order of subexpressions, or on the order in which side effects
-inside one expression tree are observed.
+expression in whatever order minimizes gas cost**. EvmScript code should not
+depend on the evaluation order of subexpressions, or on the order in which side
+effects inside one expression tree are observed.
 
 This is less exotic than it may sound. C also leaves the evaluation order of
 many subexpressions unspecified, including function arguments and most operator
 operands. The rule of thumb is the same: expressions describe values and
 dependencies; statements describe sequencing.
 
-If an exact evaluation order is required, break the expression into separate
-statements in the `.evm.ts` body and write those statements in the desired
-order.
+When exact evaluation order matters, the expression should be split into
+separate statements in the `.evm.ts` body.
 
 ## Expressions
 
@@ -128,8 +127,8 @@ unroll for (const level in range(depth)) {
 ```
 
 That syntax lowers to `unrollFor(...)`, `set(...)`, `.at(...)`, and helper calls
-such as `mul(...)`, `bitAnd(...)`, and `shr(...)`. Users author the EVM-shaped
-TypeScript; the lowered call tree is the compiler target.
+such as `mul(...)`, `bitAnd(...)`, and `shr(...)`. The EVM-shaped TypeScript is
+the authoring form; the lowered call tree is the compiler target.
 
 ## Binding
 
