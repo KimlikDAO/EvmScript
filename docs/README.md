@@ -1,5 +1,5 @@
 ---
-description: Write, test and deploy EVM programs in TypeScript
+description: TypeScript that compiles to lean EVM bytecode
 layout:
   width: default
   title:
@@ -28,9 +28,14 @@ layout:
   Ask a question...
 </button>
 
-EvmScript is an experimental TypeScript library and framework for generating,
-testing and deploying gas-efficient Ethereum Virtual Machine (EVM) programs all
-from the TypeScript ecosystem.
+EvmScript is TypeScript that compiles to lean EVM bytecode. It is an
+experimental language, library, and compiler framework for writing
+gas-optimized EVM programs from the TypeScript ecosystem.
+
+It is built around a typed stack algebra: programs are composed from
+`Fragment`s with type-checked stack effects, then lowered into compact bytecode.
+For each statement, EvmScript searches for minimum-cost stack choreography
+instead of relying on hand-written `DUP`/`SWAP` sequences.
 
 <table data-card-size="large" data-view="cards">
   <thead>
@@ -42,10 +47,10 @@ from the TypeScript ecosystem.
   </thead>
   <tbody>
     <tr>
-      <td><strong>Extreme gas efficiency</strong></td>
+      <td><strong>Optimal stack motion</strong></td>
       <td>
-        For each statement, EvmScript searches for the minimum-cost stack
-        choreography using a smart, guided combinatorial searcher
+        The binder turns each statement into an abstract stack problem and lets
+        the solver find the minimum-cost opcode path.
       </td>
       <td>
         <a href="core-concepts/abstract-stack-problem.md">
@@ -54,10 +59,10 @@ from the TypeScript ecosystem.
       </td>
     </tr>
     <tr>
-      <td><strong>Type safe</strong></td>
+      <td><strong>Typed fragments</strong></td>
       <td>
-        The program is composed of <code>Fragments</code> with type checked
-        stack effects
+        EVM bytecode fragments carry typed stack signatures, so invalid stack
+        composition fails before assembly.
       </td>
       <td>
         <a href="core-concepts/typed-stack-algebra.md">
@@ -66,70 +71,63 @@ from the TypeScript ecosystem.
       </td>
     </tr>
     <tr>
-      <td><strong>TypeScript native</strong></td>
+      <td><strong>TypeScript-native</strong></td>
       <td>
-        EVM programs are written, tested and deployed as regular TypeScript code
+        Programs, tests, fixtures, metaprogramming, and deployment scripts all
+        live in ordinary TypeScript.
       </td>
       <td>
         <a href="https://github.com/KimlikDAO/EvmScript">
-          https://github.com/KimlikDAO/EvmScript
+          github.com/KimlikDAO/EvmScript
         </a>
       </td>
     </tr>
   </tbody>
 </table>
 
-EvmScript is built around a novel
-[typed stack algebra](core-concepts/typed-stack-algebra.md), allowing us to
-generate extremely efficient EVM programs while being type-safe throughout the
-compilation.
+## Why EvmScript?
 
-## Who is this for?
-
-EvmScript is for teams whose costs come from repeatedly executing expensive EVM
-programs. It is most useful when shaving gas and bytes from the on-chain side of
-an operation compounds over many transactions.
+EvmScript is for EVM-side hot paths where bytecode size, stack choreography, and
+per-call gas dominate the cost of an operation. It is useful when shaving gas
+and bytes from the on-chain side compounds across many transactions.
 
 Good fits include:
 
-* protocol teams deploying small, specialized verifiers, proxies, and payout
-  programs;
-* DeFi operators running liquidations, auctions, rebalances, or batch
-  settlements;
+* small, specialized verifiers, proxies, and payout programs;
+* liquidations, auctions, rebalances, and batch settlements;
 * bridge operators, validator committees, and threshold-signature signer sets;
-* searchers and solvers submitting execution-heavy settlement transactions;
-* any operator who would otherwise hand-write EVM assembly to cut gas.
+* execution-heavy settlement transactions submitted by searchers and solvers;
+* any code path where you would otherwise hand-write EVM assembly to cut gas.
 
-EvmScript is for EVM-side hot paths. It helps when bytecode size, stack
-choreography, and per-call gas dominate the cost of an operation.
+The point is not to make EVM programming look high-level at all costs. The
+point is to keep the authoring environment TypeScript-native while giving the
+compiler direct control over stack layout, liveness, bytecode size, and opcode
+choice.
 
-In those settings, EvmScript can consistently generate bytecode that is
-significantly better than hand-written low-level assembly. Optimal stack dances
-are highly nontrivial and often counter-intuitive, even in small programs.
-EvmScript discovers them through smart, guided combinatorial search.
+## Authoring model
 
-## Authoring EVM Programs
+Today, EvmScript programs are written in ordinary `.ts` files using the lowered
+library API. The upcoming `.tsevm` syntax will work like a TypeScript language
+extension, similar in spirit to `.tsx`: EVM-specific syntax is parsed and
+transpiled back into regular TypeScript calls.
 
-In EvmScript, EVM programs are authored using regular `.ts` files via calls to
-the EvmScript library. Soon we will have `.tsevm` files, which will provide a
-much nicer syntax and are lowered to regular `.ts` files through a transpiler.
+Because programs live directly inside TypeScript, metaprogramming is ordinary
+TypeScript. You can use functions, loops, arrays, sorting, grouping, bigints,
+tests, fixtures, and deployment scripts from the same toolchain you already use
+for the rest of your application.
 
-Because programs live directly inside TypeScript, metaprogramming is just
-ordinary TypeScript. You can use functions, loops, arrays, sorting, grouping,
-bigints, tests, fixtures, and deployment scripts from the same toolchain you
-already use for the rest of your application.
-
-Compilation produces EVM bytecode as `Uint8Array` that you can deploy with
+Compilation produces EVM bytecode as a `Uint8Array`, ready to deploy with
 `viem`, `ethers`, `wagmi`, `@kimlikdao/lib`, or whichever Ethereum tooling you
-already prefer.
+prefer.
 
 {% hint style="info" %}
-`.tsevm` files are very similar to `.tsx` files in that the regular TypeScript
-syntax is enhanced with a domain specific language, which is then transpiled
-back into a bunch of library calls in regular TypeScript syntax.
+`.tsevm` is the planned authoring syntax. For now, examples are written in the
+lowered `.ts` form that the compiler already consumes.
 {% endhint %}
 
-As an example,
+## A taste of `.tsevm`
+
+Future `.tsevm` code can look like a small EVM language inside TypeScript:
 
 {% code title="merkle.tsevm" overflow="wrap" %}
 ```typescript
@@ -147,18 +145,18 @@ const verifyMerkle = evm (
 ```
 {% endcode %}
 
-becomes
+That author-facing syntax lowers into the library form used today:
 
 {% code title="merkle.ts" expandable="true" %}
 ```typescript
 const verifyMerkle = inline(
-  { hash: Data, index: Uint, proof: array(Data, depth) },
+  { hash: Data, index: Uint, proof: array(Data, 32) },
   ({ hash, index, proof }) => [
     unrollFor(
       [],
       range(32),
       (level) => [
-        set(hash, hashPair(
+        set(hash, hashPairAtOffset(
           proof.at(level),
           mul(bitAnd(index, 1), 32),
           hash,
@@ -167,8 +165,16 @@ const verifyMerkle = inline(
       ],
     ),
     eq(hash, sload(0, Data)),
-  ]);
+  ],
+);
 ```
 {% endcode %}
 
-For now, all code is written in `.ts` files in the lowered format.
+## How to read these docs
+
+Start with [Typed stack algebra](core-concepts/typed-stack-algebra.md) for the
+core representation, then read
+[Expressions and Statements](core-concepts/expressions-and-statements.md) and
+[Functions](core-concepts/functions.md) to see how programs lower into
+fragments. The [Abstract stack problem](core-concepts/abstract-stack-problem.md)
+page explains the search problem behind EvmScript's stack choreography.

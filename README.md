@@ -3,16 +3,15 @@
 [![Tests](https://img.shields.io/github/actions/workflow/status/KimlikDAO/EvmScript/test.yml?branch=main)](https://github.com/KimlikDAO/EvmScript/actions/workflows/test.yml)
 [![npm version](https://img.shields.io/npm/v/@kimlikdao/evmscript.svg)](https://www.npmjs.com/package/@kimlikdao/evmscript)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Downloads](https://img.shields.io/npm/d18m/@kimlikdao/evmscript.svg)](https://www.npmjs.com/package/@kimlikdao/evmscript)
 
-EvmScript is an experimental TypeScript library and framework for generating,
-testing, and deploying gas-efficient Ethereum Virtual Machine programs from the
-TypeScript ecosystem.
+EvmScript is TypeScript that compiles to lean EVM bytecode. It is an
+experimental library and framework for generating, testing, and deploying
+gas-efficient Ethereum Virtual Machine programs from the TypeScript ecosystem.
 
 It is built around a typed stack algebra: EVM programs are composed from
 `Fragment`s whose stack effects are checked at compile time, then assembled into
-compact bytecode. For each statement, EvmScript searches for low-cost stack
-choreography instead of relying on hand-written `DUP`/`SWAP` sequences.
+compact bytecode. For each statement, EvmScript searches for the minimum-cost
+stack choreography instead of relying on hand-written `DUP`/`SWAP` sequences.
 
 ## Why EvmScript?
 
@@ -94,8 +93,8 @@ tests, and deployment scripts all come from the same toolchain.
 - **Expression and statement lowering**: TypeScript builders lower expressions,
   assignments, loops, and function bodies into fragment composition.
 - **Solver-guided assembly**: the binder converts each statement into an
-  abstract stack problem, then a direct strategy or A* search finds a cheap
-  opcode path that preserves future-live values.
+  abstract stack problem, then a direct strategy or A* search finds the optimal
+  opcode path for that modeled problem while preserving future-live values.
 - **TypeScript-native deployment**: compilation produces EVM bytecode as a
   `Uint8Array`, ready to deploy with `viem`, `ethers`, `wagmi`,
   `@kimlikdao/lib`, or the Ethereum tooling you already use.

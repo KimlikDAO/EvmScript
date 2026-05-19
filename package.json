@@ -1,9 +1,16 @@
 {
   "name": "@kimlikdao/evmscript",
-  "description": "Write, test and deploy EVM programs in TypeScript",
+  "description": "Write gas-optimized smart contracts in TypeScript",
   "author": "KimlikDAO <dao@kimlikdao.org>",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "license": "MIT",
+  "keywords": [
+    "ethereum",
+    "evm",
+    "smart-contract",
+    "solidity",
+    "foundry-rs"
+  ],
   "type": "module",
   "repository": {
     "type": "git",
