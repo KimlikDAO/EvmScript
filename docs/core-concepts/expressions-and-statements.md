@@ -9,15 +9,20 @@ into one of two categories:
 Every body item eventually becomes a `Fragment` before assembly. Until then,
 most EvmScript code is represented as a small tree of fragments, not as a fixed
 sequence of opcodes. That tree is flattened only **after the binder sees the
-current stack configuration** and solves an optimization problem. This is the
-central bet of EvmScript: for each statement, given the stack in front of it and
-the values future statements still need, the compiler goes after the
-minimum-cost fragment that still computes the expression the user wrote.
+current stack configuration** and solves an optimization problem. For each
+statement, EvmScript uses the exact stack in front of it and the values future
+statements still need to search for the minimum-cost fragment that computes the
+expression the user wrote.
 
 Crucially, **the compiler is free to evaluate the nodes inside a single
 expression in whatever order minimizes gas cost**. A programmer should not rely
 on the evaluation order of subexpressions, or on the order in which side effects
 inside one expression tree are observed.
+
+This is less exotic than it may sound. C also leaves the evaluation order of
+many subexpressions unspecified, including function arguments and most operator
+operands. The rule of thumb is the same: expressions describe values and
+dependencies; statements describe sequencing.
 
 If an exact evaluation order is required, break the expression into statements
 and write those statements in the desired order.
@@ -32,27 +37,21 @@ references, calldata references, or closed expression nodes with no inputs.
 For example:
 
 ```typescript
-const hashPairAtOffset = inline(
-  { sibling: Data, offset: Uint, hash: Data },
-  ({ sibling, offset, hash }) => [
-    mstore(offset, hash),
-    mstore(sub(32, offset), sibling),
-    keccak256(0, 64),
-  ],
-);
+set(e, mul(m, mul(c, c)));
 ```
 
-Here `sub(32, offset)` and `keccak256(0, 64)` are expressions. The fragment for
-each expression declares what types it expects from its children and what it
-ensures after it runs.
+The expression here is `mul(m, mul(c, c))`, representing `m * c * c`. The outer
+`mul` depends on `m` and the inner `mul(c, c)`. Each `mul` node has a fragment
+with signature `(Uint, Uint) -> 2|Uint`, so its children must produce two
+`Uint` values and the node itself produces one `Uint`.
 
 Expressions are not emitted immediately. They form a dependency tree that the
 binder can later schedule against the current stack.
 
 ## StackRef
 
-A `StackRef` is a compile-time reference to a named value currently living on the
-EVM stack.
+A `StackRef` is a compile-time reference to a named value currently living on
+the EVM stack.
 
 ```typescript
 import { get } from "../core/expression";

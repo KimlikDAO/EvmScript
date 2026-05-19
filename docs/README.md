@@ -54,7 +54,7 @@ from the TypeScript ecosystem.
       </td>
     </tr>
     <tr>
-      <td><strong>Fully typed</strong></td>
+      <td><strong>Type safe</strong></td>
       <td>
         The program is composed of <code>Fragments</code> with type checked
         stack effects
@@ -98,7 +98,7 @@ Good fits include:
   settlements;
 * bridge operators, validator committees, and threshold-signature signer sets;
 * searchers and solvers submitting execution-heavy settlement transactions;
-* any operator who would otherwise hand-write EVM assembly to win gas.
+* any operator who would otherwise hand-write EVM assembly to cut gas.
 
 EvmScript is for EVM-side hot paths. It helps when bytecode size, stack
 choreography, and per-call gas dominate the cost of an operation.
