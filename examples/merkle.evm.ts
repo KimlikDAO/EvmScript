@@ -16,7 +16,7 @@ const verifyMerkle = evm (
   index: Uint,
   proof: Data[32],
 ): Bool => {
-  unroll for (const level in range(32)) {
+  static for (const level in range(32)) {
     hash = hashPairAtOffset(proof[level], (index & 1) * 32, hash);
     index = index >> 1;
   }

@@ -522,15 +522,15 @@ declare module "acorn" {
   }
 
   interface ForInStatement {
-    unroll?: boolean;
+    static?: boolean;
   }
 
   interface ForOfStatement {
-    unroll?: boolean;
+    static?: boolean;
   }
 
   interface ForStatement {
-    unroll?: boolean;
+    static?: boolean;
   }
 
   interface MethodDefinition {

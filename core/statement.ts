@@ -60,7 +60,7 @@ function set(
   throw new TypeError("set requires an expression, stack ref, or typed literal");
 }
 
-const unrollFor = <T>(
+const staticFor = <T>(
   init: Body,
   arr: readonly T[],
   fn: (elm: T) => Body,
@@ -103,5 +103,5 @@ export {
   ifThen,
   label,
   set,
-  unrollFor
+  staticFor
 };

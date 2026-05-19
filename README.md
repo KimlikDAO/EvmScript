@@ -42,11 +42,11 @@ TypeScript from the package lockfile.
 EvmScript programs are authored in `.evm.ts` files. These are TypeScript
 modules with a small EVM syntax extension: `evm (...) => {}` functions, typed
 EVM words, fixed arrays like `Data[32]`, stack-resident local variables, and
-`unroll for` loops.
+`static for` loops.
 
 The model is similar to `.tsx`: the author-facing syntax is transpiled into
 regular TypeScript calls before the runtime executes the module. The lowered
-`inline(...)`, `set(...)`, and `unrollFor(...)` form remains the compiler
+`inline(...)`, `set(...)`, and `staticFor(...)` form remains the compiler
 target, but it is not the normal surface for writing EvmScript programs.
 
 A Merkle verifier, for example, can be expressed in the EVM syntax as:
@@ -57,7 +57,7 @@ const verifyMerkle = evm (
   index: Uint,
   proof: Data[32]
 ): Bool => {
-  unroll for (const level in range(32)) {
+  static for (const level in range(32)) {
     hash = hashPair(proof[level], (index & 1) * 32, hash);
     index = index >> 1;
   }
@@ -71,7 +71,7 @@ The compiler lowers this into regular TypeScript library calls similar to:
 const verifyMerkle = inline(
   { hash: Data, index: Uint, proof: array(Data, 32) },
   ({ hash, index, proof }) => [
-    unrollFor(
+    staticFor(
       [],
       range(32),
       (level) => [

@@ -245,18 +245,18 @@ class EvmGenerator extends Generator {
   }
 
   ForInStatement(node: ForInStatement) {
-    this.unrollForStatement(node);
+    this.staticForStatement(node);
   }
 
   ForOfStatement(node: ForOfStatement) {
-    this.unrollForStatement(node);
+    this.staticForStatement(node);
   }
 
-  unrollForStatement(node: ForInStatement | ForOfStatement) {
-    if (!node.unroll)
-      this.unsupported(node, "Only unroll for loops are supported in EVM functions");
+  staticForStatement(node: ForInStatement | ForOfStatement) {
+    if (!node.static)
+      this.unsupported(node, "Only static for loops are supported in EVM functions");
     const name = this.loopBindingName(node.left);
-    this.put("unrollFor([], ");
+    this.put("staticFor([], ");
     this.rec(node.right);
     this.put(`, (${name}) => `);
     this.rec(node.body);
@@ -268,12 +268,12 @@ class EvmGenerator extends Generator {
       return left.name;
     if (left.type == "VariableDeclaration") {
       if (left.declarations.length != 1)
-        this.unsupported(left, "EVM unroll loops need one binding");
+        this.unsupported(left, "EVM static loops need one binding");
       const id = left.declarations[0]!.id;
       if (id.type == "Identifier")
         return id.name;
     }
-    this.unsupported(left, "EVM unroll loop bindings must be identifiers");
+    this.unsupported(left, "EVM static loop bindings must be identifiers");
   }
 
   MemberExpression(node: MemberExpression) {

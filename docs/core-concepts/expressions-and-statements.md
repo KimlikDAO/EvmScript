@@ -116,17 +116,18 @@ includes:
 Statements impose order. The binder may reorder work inside a single expression,
 but it lowers body statements from left to right.
 
-Bodies may be nested arrays of statements. In `.evm.ts`, `unroll for` asks the
-transpiler to generate those repeated statement bodies:
+Bodies may be nested arrays of statements. In `.evm.ts`, `static for` marks a
+generation-time loop whose repeated statement bodies are produced by the
+transpiler:
 
 ```typescript
-unroll for (const level in range(depth)) {
+static for (const level in range(depth)) {
   hash = hashPairAtOffset(proof[level], (index & 1) * 32, hash);
   index = index >> 1;
 }
 ```
 
-That syntax lowers to `unrollFor(...)`, `set(...)`, `.at(...)`, and helper calls
+That syntax lowers to `staticFor(...)`, `set(...)`, `.at(...)`, and helper calls
 such as `mul(...)`, `bitAnd(...)`, and `shr(...)`. The EVM-shaped TypeScript is
 the authoring form; the lowered call tree is the compiler target.
 

@@ -3482,7 +3482,7 @@ function tsPlugin(options?: {
           if (result) return result;
         }
         if (
-          this.isContextual('unroll') &&
+          this.isContextual('static') &&
           !this.hasFollowingLineBreak() &&
           this.lookahead().type === tt._for
         ) {
@@ -3493,9 +3493,9 @@ function tsPlugin(options?: {
             node.type !== 'ForOfStatement' &&
             node.type !== 'ForStatement'
           ) {
-            this.raise(node.start, "Expected 'for' after 'unroll'");
+            this.raise(node.start, "Expected 'for' after 'static'");
           }
-          node.unroll = true;
+          node.static = true;
           return node;
         }
         if (

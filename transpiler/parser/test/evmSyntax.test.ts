@@ -94,10 +94,10 @@ test("ordinary functions carry evm false", () => {
   expect(genericAsync.evm).toBe(false);
 });
 
-test("unroll for loops parse as marked for-in statements", () => {
+test("static for loops parse as marked for-in statements", () => {
   const ast = parseSource(`
     const verify = evm (): Bool => {
-      unroll for (const level in range(32)) {
+      static for (const level in range(32)) {
         mstore(0, level);
       }
       return true;
@@ -110,5 +110,5 @@ test("unroll for loops parse as marked for-in statements", () => {
   expectNodeType(fn, "ArrowFunctionExpression");
   const loop = fn.body.body[0];
   expectNodeType(loop, "ForInStatement");
-  expect(loop.unroll).toBe(true);
+  expect(loop.static).toBe(true);
 });

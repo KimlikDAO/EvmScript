@@ -117,11 +117,11 @@ gas on the table.
 EvmScript programs are authored in `.evm.ts` files. These are TypeScript
 modules with a small EVM language extension: `evm (...) => {}` functions, typed
 EVM words, fixed arrays such as `Data[32]`, stack-resident local variables, and
-`unroll for` loops.
+`static for` loops.
 
 The model is similar to `.tsx`: the author-facing syntax is parsed and
 transpiled into ordinary TypeScript library calls before Bun runs the module.
-The lowered `inline(...)`, `set(...)`, and `unrollFor(...)` form remains the
+The lowered `inline(...)`, `set(...)`, and `staticFor(...)` form remains the
 compiler target, but not the primary authoring surface.
 
 Because EVM functions are embedded in TypeScript, metaprogramming happens in
@@ -147,7 +147,7 @@ const verifyMerkle = evm (
   index: Uint,
   proof: Data[32]
 ): Bool => {
-  unroll for (const level in range(32)) {
+  static for (const level in range(32)) {
     hash = hashPair(proof[level], (index & 1) * 32, hash);
     index = index >> 1;
   }
@@ -164,7 +164,7 @@ following:
 const verifyMerkle = inline(
   { hash: Data, index: Uint, proof: array(Data, 32) },
   ({ hash, index, proof }) => [
-    unrollFor(
+    staticFor(
       [],
       range(32),
       (level) => [

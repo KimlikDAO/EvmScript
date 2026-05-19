@@ -59,7 +59,7 @@ test("prints merkle-shaped evm body constructs", () => {
       index: Uint,
       proof: Data[32],
     ): Bool => {
-      unroll for (const level in range(32)) {
+      static for (const level in range(32)) {
         hash = hashPairAtOffset(proof[level], (index & 1) * 32, hash);
         index = index >> 1;
       }
@@ -76,7 +76,7 @@ test("prints merkle-shaped evm body constructs", () => {
   expect(generate(fn)).toBe(`inline(
   { hash: Data, index: Uint, proof: array(Data, 32) },
   ({ hash, index, proof }) => [
-    unrollFor([], range(32), (level) => [
+    staticFor([], range(32), (level) => [
       set(hash, hashPairAtOffset(proof.at(level), mul(bitAnd(index, 1), 32), hash)),
       set(index, shr(1, index))
     ]),
@@ -89,7 +89,7 @@ test("prints local bindings in zero-parameter evm functions", () => {
   const ast = TsParser.parse(stripIndent(`
     const send = evm (): Bool => {
       const value: Weis = amount;
-      unroll for (const recipient of recipients) {
+      static for (const recipient of recipients) {
         call(0, recipient, value, 0, 0, 0, 0);
       }
     };
@@ -105,7 +105,7 @@ test("prints local bindings in zero-parameter evm functions", () => {
   {},
   ({}) => [
     set("value", Weis, amount),
-    unrollFor([], recipients, (recipient) => [
+    staticFor([], recipients, (recipient) => [
       call(0, recipient, get("value"), 0, 0, 0, 0)
     ])
   ]

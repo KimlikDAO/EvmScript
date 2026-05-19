@@ -36,7 +36,7 @@ test("batchSendFixedAmount reuses amount for repeated groups", () => {
   expect(hasDup(program)).toBe(true);
 });
 
-test("batchSend sorts recipients by amount before unrolling groups", () => {
+test("batchSend sorts recipients by amount before static expansion", () => {
   const program = assemble(batchSend([
     { address: addr(3), amount: 2n },
     { address: addr(1), amount: 1n },

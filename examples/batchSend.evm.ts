@@ -19,7 +19,7 @@ const batchSendFixedAmount = (
   }
   return evm (): Bool => {
     const value: Weis = amount;
-    unroll for (const recipient of recipients) {
+    static for (const recipient of recipients) {
       call(0, recipient, value, 0, 0, 0, 0);
     }
   };
@@ -30,9 +30,9 @@ const batchSend = (recipients: readonly Recipient[]): InlineFunction => {
   if (groups.length == 0)
     throw new RangeError("batchSend requires at least one recipient");
   return evm (): Bool => {
-    unroll for (const group of groups) {
+    static for (const group of groups) {
       const value: Weis = group.amount;
-      unroll for (const recipient of group.recipients) {
+      static for (const recipient of group.recipients) {
         call(0, recipient, value, 0, 0, 0, 0);
       }
     }
