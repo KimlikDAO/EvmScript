@@ -2,16 +2,44 @@
 
 As explained in [Functions](functions.md), an inline body is eventually lowered
 statement by statement. For each statement, the binder calls into the solver to
-answer a concrete question:
+answer a concrete optimization question:
 
-> Given the values already on the stack, which stack actions and expression
-> fragments should we emit to compute this expression while preserving the
-> values that future statements still need?
+> Given the values already on the stack, what is the minimum-cost sequence of
+> opcodes that computes this expression while preserving the values that future
+> statements still need?
 
-We call this the abstract stack problem. It is "abstract" because the solver does
-not reason about bytecode directly. Instead, it works with integer identifiers
-for values and operations, then the binder turns the solution path back into EVM
-fragments.
+We call this the abstract stack problem. It is "abstract" because the solver
+does not reason about bytecode directly. Instead, it works with integer
+identifiers for values and operations, then the binder turns the solution path
+back into EVM fragments.
+
+The dream version of compilation would be: given a specification, output the
+best possible program. In the general Turing-complete setting, that function is
+not merely expensive or NP-hard. It is uncomputable. The same wall appears in
+Kolmogorov complexity and in the
+[Busy Beaver function](https://wiki.bbchallenge.org/), which grows faster than
+any computable function. Even for tiny Turing machines, the frontier is brutal:
+for the standard two-symbol Busy Beaver, the exact 5-state value was only proved
+in 2024, and no exact values are known beyond that.
+
+The abstract stack problem is the deliberately finite version of this ambition,
+but it is still a hard planning problem rather than a cosmetic peephole pass.
+The decision version, "is there a valid sequence with cost at most `C`?", ranges
+over an exponentially large graph of stack states. We suspect the general form
+is PSPACE-complete, though that should be read as a complexity conjecture until
+we write down the reduction.
+
+EvmScript makes the problem tractable without giving up the ambition. The
+optimization boundary is statement by statement, but that does **not** mean each
+statement is optimized in isolation. Each statement is solved against the exact
+stack signature produced by the code before it and a keep list computed from the
+rest of the body. The search depends on both the past and the future.
+
+That framework is expressive enough to generate programs that are better than
+hand-written EVM assembly in almost all ordinary cases. Humans are not good at
+exhaustively searching stack-machine choreography under `DUP`, `SWAP`, and
+future-liveness constraints. EvmScript is built to search that space directly
+and emit the best fragment in the modeled problem.
 
 ## The abstract problem
 
@@ -45,7 +73,8 @@ action `7` can run when the current abstract stack ends in `[2, -1, 4]`. It pops
 that suffix and pushes `7`.
 
 The solver's goal is to produce a final stack that ends with `output` and still
-contains every negative id listed in `keep`.
+contains every negative id listed in `keep`, with the lowest total action cost
+among all valid paths in the abstract model.
 
 ## From expressions to a problem
 
@@ -57,7 +86,7 @@ The binder converts an EvmScript expression tree into this integer problem:
 * Future stack references become `keep`.
 * Literal and zero-input fragments become terminal positive actions.
 
-After solving, the binder translates the chosen actions back into fragments:
+After solving, the binder translates the optimal path back into fragments:
 
 * primitive actions become `PUSH0`, `POP`, `DUPn`, or `SWAPn`;
 * positive expression actions emit the fragment associated with that expression
@@ -75,8 +104,14 @@ EvmScript currently uses a fast two-stage solver:
 
 The A* solver explores valid stack-action paths, scores states with a heuristic,
 and stops when it reaches a stack that satisfies the output and keep
-requirements. In practice this performs very well for the stack problems created
-by current EvmScript expressions.
+requirements. The goal is an admissible heuristic: with admissibility, A* is not
+just a good-stack-choreography finder, it is an optimal-path search for the
+modeled statement problem.
+
+That is the bar for EvmScript code generation. The compiler should not settle
+for "pretty good" stack motion when the abstract problem is small enough to
+solve exactly. It should attack the statement, prove the cheapest route through
+the modeled state space, and emit that route as bytecode.
 
 ## Future searchers
 
