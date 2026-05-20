@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
-import { sstore } from "../builtins";
+import { forRange } from "../control";
+import { mstore, sstore } from "../builtins";
 import { Expression, get } from "../expression";
 import { Fragment, LabelPos } from "../fragment";
 import { Op } from "../opcodes";
@@ -87,4 +88,23 @@ test("body emits labels and blobs into flat code", () => {
   expect(frag.code[1]).toBeInstanceOf(LabelPos);
   expect((frag.code[1] as LabelPos).labelId).toBe(data.label.id);
   expect(frag.code[2]).toEqual(data.data);
+});
+
+test("body lowers runtime forRange loops without changing stack shape", () => {
+  const frag = body(forRange("i", 0, 3, 1, (i) => [
+    mstore(0, i),
+  ]));
+
+  expect(String(frag.signature)).toBe("() → 0|");
+  expect(numberOps(frag.code)).toContain(Op.JUMPDEST);
+  expect(numberOps(frag.code)).toContain(Op.JUMPI);
+  expect(numberOps(frag.code)).toContain(Op.JUMP);
+  expect(numberOps(frag.code)).toContain(Op.MSTORE);
+  expect(numberOps(frag.code)).toContain(Op.ADD);
+});
+
+test("body rejects forRange bodies with net stack output", () => {
+  expect(() => body(forRange("i", 0, 1, 1, (i) =>
+    new Expression([i, 1], Ops[Op.ADD]!))))
+    .toThrow("forRange(i) body must preserve the loop stack shape");
 });

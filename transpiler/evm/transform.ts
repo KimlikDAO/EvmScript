@@ -97,7 +97,7 @@ class EvmTransform extends Mutator {
       ["../core/function", ["inline"]],
       ["../core/array", ["array"]],
       ["../core/statement", ["set"]],
-      ["../core/control", ["staticFor"]],
+      ["../core/control", ["forRange", "staticFor"]],
       ["../core/expression", ["get"]],
     ];
     const out: string[] = [];

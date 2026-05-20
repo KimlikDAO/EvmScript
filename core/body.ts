@@ -1,12 +1,15 @@
 import { bind, collectNames } from "./binder";
+import { ForRangeStatement } from "./control";
 import { ExprChild, Expression, StackRef } from "./expression";
 import { Fragment, LabelPos, compose } from "./fragment";
+import { Op } from "./opcodes";
 import { Signature } from "./signature";
-import { Blob, NameBinding, SetStatement, Statement } from "./statement";
-import { EvmType, Word, assertAssignable } from "./types";
+import { Blob, Label, NameBinding, SetStatement, Statement } from "./statement";
+import { EvmType, Uint, Word, assertAssignable } from "./types";
 import { assert } from "../util/assert";
 
-type Body = Statement | readonly Body[];
+type BodyStatement = Statement | ForRangeStatement;
+type Body = BodyStatement | readonly Body[];
 
 function body(...input: readonly Body[]): Fragment {
   const statements = flattenBody(input.length == 1 ? input[0]! : input);
@@ -24,7 +27,9 @@ const bodyFrom = (
   for (let i = 0; i < statements.length; ++i) {
     const stmt = statements[i]!;
     let next: Fragment;
-    if (stmt instanceof Blob)
+    if (stmt instanceof ForRangeStatement)
+      next = forRangeFragment(frag, stmt);
+    else if (stmt instanceof Blob)
       next = Fragment.from({
         code: [new LabelPos(stmt.label.id), stmt.data],
       });
@@ -36,8 +41,10 @@ const bodyFrom = (
       );
     else if (stmt instanceof Expression)
       next = bind(frag.signature, statementExpr(stmt), keepAfter[i]!);
-    else
+    else if (stmt instanceof Label)
       next = Fragment.from({ code: [new LabelPos(stmt.id)] });
+    else
+      throw new TypeError("Unsupported body statement");
     frag = eraseReboundName(compose(frag, next), stmt);
   }
   return frag;
@@ -46,11 +53,11 @@ const bodyFrom = (
 const isBodyList = (body: Body): body is readonly Body[] =>
   Array.isArray(body);
 
-const flattenBody = (body: Body): Statement[] =>
+const flattenBody = (body: Body): BodyStatement[] =>
   isBodyList(body) ? body.flatMap(flattenBody) : [body];
 
 const futureRefs = (
-  statements: readonly Statement[],
+  statements: readonly BodyStatement[],
   keepAtEnd = new Set<string>(),
 ): Set<string>[] => {
   const keepAfter = Array<Set<string>>(statements.length);
@@ -63,10 +70,21 @@ const futureRefs = (
   return keepAfter;
 }
 
-const refsIn = (stmt: Statement): Set<string> => {
+const refsIn = (stmt: BodyStatement): Set<string> => {
+  if (stmt instanceof ForRangeStatement)
+    return refsInForRange(stmt);
   if (stmt instanceof SetStatement)
     return refsInChild(stmt.init);
   return stmt instanceof Expression ? collectNames(stmt) : new Set();
+}
+
+const refsInForRange = (stmt: ForRangeStatement): Set<string> => {
+  const names = new Set<string>();
+  for (const bodyStmt of flattenBody(stmt.body))
+    for (const name of refsIn(bodyStmt))
+      names.add(name);
+  names.delete(stmt.name);
+  return names;
 }
 
 const refsInChild = (child: ExprChild): Set<string> =>
@@ -83,7 +101,7 @@ const bindKeep = (
   return out;
 }
 
-const eraseReboundName = (frag: Fragment, stmt: Statement): Fragment =>
+const eraseReboundName = (frag: Fragment, stmt: BodyStatement): Fragment =>
   stmt instanceof SetStatement && stmt.name instanceof StackRef
     ? keepLastName(frag, stmt.name.name)
     : frag;
@@ -194,5 +212,97 @@ const typeOfRef = (prefix: Signature, name: string): EvmType => {
   return Word;
 }
 
+const forRangeFragment = (
+  prefix: Fragment,
+  stmt: ForRangeStatement,
+): Fragment => {
+  const init = namedUintLiteral(stmt.begin, stmt.name);
+  const loopHead = compose(prefix, init);
+  const identity = identityFor(loopHead.signature);
+  const bodyFrag = bodyFrom(
+    identity,
+    stmt.body,
+    namesIn(loopHead.signature),
+  );
+  assertSameSignature(
+    bodyFrag.signature,
+    identity.signature,
+    `forRange(${stmt.name}) body must preserve the loop stack shape`,
+  );
+
+  const head = new Label(`forRange-${stmt.name}-head`);
+  const exit = new Label(`forRange-${stmt.name}-exit`);
+  const { ensure, ensureNames } = prefix.signature;
+
+  return Fragment.from({
+    expect: ensure,
+    pop: ensure.length,
+    ensure,
+    ensureNames,
+    code: [
+      ...init.code,
+      ...head.dest().frag.code,
+      Op.DUP1,
+      ...uintLiteralCode(stmt.end),
+      Op.LT,
+      Op.ISZERO,
+      ...exit.ref(true).frag.code,
+      Op.JUMPI,
+      ...bodyFrag.code,
+      ...uintLiteralCode(stmt.step),
+      Op.ADD,
+      ...head.ref(true).frag.code,
+      Op.JUMP,
+      ...exit.dest().frag.code,
+      Op.POP,
+    ],
+  });
+}
+
+const namedUintLiteral = (value: number, name: string): Fragment =>
+  Fragment.from({
+    ensure: [Uint],
+    ensureNames: [name],
+    code: uintLiteralCode(value),
+  });
+
+const uintLiteralCode = (value: number) =>
+  Fragment.fromLiteral(value, Uint).code;
+
+const identityFor = (signature: Signature): Fragment =>
+  Fragment.from({
+    expect: signature.ensure,
+    pop: signature.ensure.length,
+    ensure: signature.ensure,
+    ensureNames: signature.ensureNames,
+  });
+
+const namesIn = (signature: Signature): Set<string> =>
+  new Set(signature.ensureNames.filter((name): name is string => !!name));
+
+const assertSameSignature = (
+  actual: Signature,
+  expected: Signature,
+  context: string,
+) => {
+  assert(actual.pop == expected.pop, context);
+  assert(actual.halt == expected.halt, context);
+  assert(sameTypes(actual.expect, expected.expect), context);
+  assert(sameTypes(actual.ensure, expected.ensure), context);
+  assert(sameNames(actual.ensureNames, expected.ensureNames), context);
+}
+
+const sameTypes = (
+  lhs: readonly EvmType[],
+  rhs: readonly EvmType[],
+): boolean =>
+  lhs.length == rhs.length && lhs.every((type, i) => type === rhs[i]);
+
+const sameNames = (
+  lhs: readonly (string | undefined)[],
+  rhs: readonly (string | undefined)[],
+): boolean =>
+  lhs.length == rhs.length && lhs.every((name, i) => name == rhs[i]);
+
 export { body, bodyFrom, flattenBody };
-export type { Body };
+export type { Body, BodyStatement };

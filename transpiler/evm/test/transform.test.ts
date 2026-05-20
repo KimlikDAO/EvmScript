@@ -19,7 +19,7 @@ test("replaces evm arrow functions with generated inline bodies", () => {
     import { inline } from "../core/function";
     import { array } from "../core/array";
     import { set } from "../core/statement";
-    import { staticFor } from "../core/control";
+    import { forRange, staticFor } from "../core/control";
     import { get } from "../core/expression";
 
     const keep = (x: number) => x + 1;
@@ -45,7 +45,7 @@ test("replaces evm function expressions with generated inline bodies", () => {
     import { inline } from "../core/function";
     import { array } from "../core/array";
     import { set } from "../core/statement";
-    import { staticFor } from "../core/control";
+    import { forRange, staticFor } from "../core/control";
     import { get } from "../core/expression";
     const verify = inline(
       { hash: Data },
@@ -68,7 +68,7 @@ test("replaces evm function declarations with const inline bodies", () => {
     import { inline } from "../core/function";
     import { array } from "../core/array";
     import { set } from "../core/statement";
-    import { staticFor } from "../core/control";
+    import { forRange, staticFor } from "../core/control";
     import { get } from "../core/expression";
     const verify = inline(
       { hash: Data },
@@ -105,7 +105,7 @@ test("indents nested evm function replacements", () => {
     import { inline } from "../core/function";
     import { array } from "../core/array";
     import { set } from "../core/statement";
-    import { staticFor } from "../core/control";
+    import { forRange, staticFor } from "../core/control";
     import { get } from "../core/expression";
     const make = () => {
       return inline(

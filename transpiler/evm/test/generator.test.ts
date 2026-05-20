@@ -112,6 +112,31 @@ test("prints local bindings in zero-parameter evm functions", () => {
 )`);
 });
 
+test("prints runtime range loops as forRange statements", () => {
+  const ast = TsParser.parse(stripIndent(`
+    const fill = evm (): Bool => {
+      for (const i in range(0, 4)) {
+        mstore(0, i);
+      }
+    };
+  `), {
+    sourceType: "module",
+    ecmaVersion: "latest",
+  });
+
+  const declaration = ast.body[0] as any;
+  const fn = declaration.declarations[0].init;
+
+  expect(generate(fn)).toBe(`inline(
+  {},
+  ({}) => [
+    forRange("i", 0, 4, 1, (i) => [
+      mstore(0, i)
+    ])
+  ]
+)`);
+});
+
 test("prints expression local initializers without literal type wrapping", () => {
   const ast = TsParser.parse(stripIndent(`
     const proxy = evm (): Bool => {
