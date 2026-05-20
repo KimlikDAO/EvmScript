@@ -7,15 +7,15 @@ import {
   POP_ACTION,
   dupIndex,
   swapIndex,
-} from "./solver/action";
-import { solve } from "./solver/solver";
+} from "../solver/action";
+import { solve } from "../solver/solver";
 import {
   ActionId,
   ProblemData,
   RuleInputs,
   Solution,
   ValueId,
-} from "./solver/solver.d";
+} from "../solver/solver.d";
 import { EvmType, Word } from "./types";
 
 class BoundProblem implements ProblemData {

@@ -10,7 +10,7 @@ import {
   DUP_ACTION,
   POP_ACTION,
   SWAP_ACTION,
-} from "../solver/action";
+} from "../../solver/action";
 import { Uint, Weis, Word } from "../types";
 
 const numberOps = (code: readonly unknown[]): number[] =>

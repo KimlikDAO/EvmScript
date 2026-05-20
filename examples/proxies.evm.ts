@@ -27,7 +27,7 @@ const upgradableProxy = (slot: Bytes): InlineFunction => evm () => {
     0,
   );
   returndataCopy(0);
-  return returnOrRevert(success, 0, returndataSize());
+  returnOrRevert(success, 0, returndataSize());
 }
 
 const createUpgradableProxy = (

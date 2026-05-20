@@ -14,7 +14,7 @@ import {
   WeisLit,
   assertAssignable,
 } from "./types";
-import { assert } from "./util/assert";
+import { assert } from "../util/assert";
 
 class StackRef {
   constructor(

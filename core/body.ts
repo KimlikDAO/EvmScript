@@ -4,7 +4,7 @@ import { Fragment, LabelPos, compose } from "./fragment";
 import { Signature } from "./signature";
 import { Blob, NameBinding, SetStatement, Statement } from "./statement";
 import { EvmType, Word, assertAssignable } from "./types";
-import { assert } from "./util/assert";
+import { assert } from "../util/assert";
 
 type Body = Statement | readonly Body[];
 

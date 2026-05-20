@@ -116,7 +116,7 @@ test("prints expression local initializers without literal type wrapping", () =>
   const ast = TsParser.parse(stripIndent(`
     const proxy = evm (): Bool => {
       const success: Bool = delegateCall(gas(), impl, 0, calldataSize(), 0, 0);
-      return returnOrRevert(success, 0, returndataSize());
+      returnOrRevert(success, 0, returndataSize());
     };
   `), {
     sourceType: "module",

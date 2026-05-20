@@ -1,6 +1,5 @@
-import { BoolArg, ExprChild, Expression, StackRef } from "./expression";
+import { ExprChild, Expression, StackRef } from "./expression";
 import { Fragment } from "./fragment";
-import type { Body } from "./body";
 import { Bytes, EvmType, Literal, Size } from "./types";
 
 class Label {
@@ -22,14 +21,6 @@ class Label {
   dest(): Expression {
     return Expression.fromFragment(Fragment.ofLabelRef(this.id));
   }
-}
-
-const ifThen = (_cond: BoolArg, _then: Expression): Expression => {
-  throw new TypeError("ifThen is not implemented yet");
-}
-
-const ifElse = (_cond: BoolArg, _t: Expression, _f: Expression): Expression => {
-  throw new TypeError("ifElse is not implemented yet");
 }
 
 type NameBinding = string | StackRef | string[] | Record<string, string>;
@@ -59,12 +50,6 @@ function set(
     return new SetStatement(name, exprOrType);
   throw new TypeError("set requires an expression, stack ref, or typed literal");
 }
-
-const staticFor = <T>(
-  init: Body,
-  arr: readonly T[],
-  fn: (elm: T) => Body,
-): Body[] => [init, ...arr.map(fn)];
 
 class Blob {
   readonly label: Label;
@@ -99,9 +84,6 @@ export {
   SetStatement,
   Statement,
   blob,
-  ifElse,
-  ifThen,
   label,
-  set,
-  staticFor
+  set
 };
