@@ -1,6 +1,7 @@
 import { ExprChild, Expression, StackRef } from "./expression";
 import { Fragment } from "./fragment";
 import { Bytes, EvmType, Literal, Size } from "./types";
+import type { ForRangeStatement } from "./control";
 
 class Label {
   static next = 0;
@@ -32,7 +33,8 @@ class SetStatement {
   ) { }
 }
 
-type Statement = Expression | SetStatement | Blob | Label;
+type Statement = Expression | SetStatement | Blob | Label | ForRangeStatement;
+type Body = Statement | readonly Body[];
 
 function set(name: NameBinding, expr: ExprChild): SetStatement;
 function set(name: NameBinding, type: EvmType, lit: Literal): SetStatement;
@@ -79,6 +81,7 @@ const label = (name?: string): Label => new Label(name);
 
 export {
   Blob,
+  Body,
   Label,
   NameBinding,
   SetStatement,

@@ -1,15 +1,14 @@
 import { bind, collectNames } from "./binder";
 import { ForRangeStatement } from "./control";
 import { ExprChild, Expression, StackRef } from "./expression";
-import { Fragment, LabelPos, compose } from "./fragment";
+import { Fragment, LabelPos, compose, pushNumber } from "./fragment";
 import { Op } from "./opcodes";
+import { Ops } from "./ops";
 import { Signature } from "./signature";
-import { Blob, Label, NameBinding, SetStatement, Statement } from "./statement";
-import { EvmType, Uint, Word, assertAssignable } from "./types";
+import { Blob, Label, SetStatement } from "./statement";
+import type { Body, NameBinding, Statement } from "./statement";
+import { Bool, EvmType, Uint, Word, assertAssignable } from "./types";
 import { assert } from "../util/assert";
-
-type BodyStatement = Statement | ForRangeStatement;
-type Body = BodyStatement | readonly Body[];
 
 function body(...input: readonly Body[]): Fragment {
   const statements = flattenBody(input.length == 1 ? input[0]! : input);
@@ -53,11 +52,11 @@ const bodyFrom = (
 const isBodyList = (body: Body): body is readonly Body[] =>
   Array.isArray(body);
 
-const flattenBody = (body: Body): BodyStatement[] =>
+const flattenBody = (body: Body): Statement[] =>
   isBodyList(body) ? body.flatMap(flattenBody) : [body];
 
 const futureRefs = (
-  statements: readonly BodyStatement[],
+  statements: readonly Statement[],
   keepAtEnd = new Set<string>(),
 ): Set<string>[] => {
   const keepAfter = Array<Set<string>>(statements.length);
@@ -70,7 +69,7 @@ const futureRefs = (
   return keepAfter;
 }
 
-const refsIn = (stmt: BodyStatement): Set<string> => {
+const refsIn = (stmt: Statement): Set<string> => {
   if (stmt instanceof ForRangeStatement)
     return refsInForRange(stmt);
   if (stmt instanceof SetStatement)
@@ -101,7 +100,7 @@ const bindKeep = (
   return out;
 }
 
-const eraseReboundName = (frag: Fragment, stmt: BodyStatement): Fragment =>
+const eraseReboundName = (frag: Fragment, stmt: Statement): Fragment =>
   stmt instanceof SetStatement && stmt.name instanceof StackRef
     ? keepLastName(frag, stmt.name.name)
     : frag;
@@ -232,42 +231,59 @@ const forRangeFragment = (
 
   const head = new Label(`forRange-${stmt.name}-head`);
   const exit = new Label(`forRange-${stmt.name}-exit`);
-  const { ensure, ensureNames } = prefix.signature;
 
-  return Fragment.from({
-    expect: ensure,
-    pop: ensure.length,
-    ensure,
-    ensureNames,
-    code: [
-      ...init.code,
-      ...head.dest().frag.code,
-      Op.DUP1,
-      ...uintLiteralCode(stmt.end),
-      Op.LT,
-      Op.ISZERO,
-      ...exit.ref(true).frag.code,
-      Op.JUMPI,
-      ...bodyFrag.code,
-      ...uintLiteralCode(stmt.step),
-      Op.ADD,
-      ...head.ref(true).frag.code,
-      Op.JUMP,
-      ...exit.dest().frag.code,
-      Op.POP,
-    ],
-  });
+  return compose(
+    init,
+    head.dest().frag,
+    rangeDoneCondition(stmt.end),
+    exit.ref(true).frag,
+    Ops[Op.JUMPI]!,
+    bodyFrag,
+    incrementLoopIndex(stmt.step, stmt.name),
+    head.ref(true).frag,
+    Ops[Op.JUMP]!,
+    exit.dest().frag,
+    popLoopIndex(),
+  );
 }
 
 const namedUintLiteral = (value: number, name: string): Fragment =>
   Fragment.from({
     ensure: [Uint],
     ensureNames: [name],
-    code: uintLiteralCode(value),
+    code: pushNumber(value),
   });
 
-const uintLiteralCode = (value: number) =>
-  Fragment.fromLiteral(value, Uint).code;
+const rangeDoneCondition = (end: number): Fragment =>
+  Fragment.from({
+    expect: [Uint],
+    ensure: [Bool],
+    code: [
+      ...pushNumber(end),
+      Op.DUP2,
+      Op.LT,
+      Op.ISZERO,
+    ],
+  });
+
+const incrementLoopIndex = (step: number, name: string): Fragment =>
+  Fragment.from({
+    expect: [Uint],
+    pop: 1,
+    ensure: [Uint],
+    ensureNames: [name],
+    code: [
+      ...pushNumber(step),
+      Op.ADD,
+    ],
+  });
+
+const popLoopIndex = (): Fragment =>
+  Fragment.from({
+    expect: [Uint],
+    pop: 1,
+    code: [Op.POP],
+  });
 
 const identityFor = (signature: Signature): Fragment =>
   Fragment.from({
@@ -305,4 +321,3 @@ const sameNames = (
   lhs.length == rhs.length && lhs.every((name, i) => name == rhs[i]);
 
 export { body, bodyFrom, flattenBody };
-export type { Body, BodyStatement };

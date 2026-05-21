@@ -88,6 +88,8 @@ const Ops: Partial<Record<Op, Fragment>> = {
   [Op.MSTORE8]: op(Op.MSTORE8, [Locn, Data], []),
   [Op.SLOAD]: op(Op.SLOAD, [Data], [Data]),
   [Op.SSTORE]: op(Op.SSTORE, [Data, Data], []),
+  [Op.JUMP]: op(Op.JUMP, [Locn], []),
+  [Op.JUMPI]: op(Op.JUMPI, [Locn, Bool], []),
   [Op.PC]: op(Op.PC, [], [Locn]),
   [Op.MSIZE]: op(Op.MSIZE, [], [Size]),
   [Op.GAS]: op(Op.GAS, [], [Uint]),

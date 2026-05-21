@@ -1,7 +1,8 @@
-import { body, Body } from "./body";
+import { body } from "./body";
 import { CodeAtom, FlatCode, Fragment, LabelPos, LabelRef } from "./fragment";
 import { Op, PUSHN } from "./opcodes";
 import { Label } from "./statement";
+import type { Body } from "./statement";
 import { assert } from "../util/assert";
 
 type Program = Uint8Array<ArrayBuffer>;

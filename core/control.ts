@@ -1,5 +1,5 @@
-import type { Body } from "./body";
 import { get, type BoolArg, type Expression, type StackRef } from "./expression";
+import type { Body } from "./statement";
 import { Uint } from "./types";
 
 const ifThen = (_cond: BoolArg, _then: Expression): Expression => {

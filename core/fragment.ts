@@ -170,5 +170,6 @@ export {
   Fragment,
   LabelPos,
   LabelRef,
-  compose
+  compose,
+  pushNumber
 };

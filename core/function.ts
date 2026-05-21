@@ -10,7 +10,8 @@ import {
   isArrayType,
 } from "./array";
 import { Op } from "./opcodes";
-import { Body, bodyFrom, flattenBody } from "./body";
+import { bodyFrom, flattenBody } from "./body";
+import type { Body } from "./statement";
 import { EvmType, Word } from "./types";
 
 type ParamSpec = EvmType | AnyArrayType;
